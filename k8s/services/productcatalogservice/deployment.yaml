@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: productcatalogservice
+  namespace: online-boutique
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: productcatalogservice
+
+  template:
+    metadata:
+      labels:
+        app: productcatalogservice
+
+    spec:
+      containers:
+        - name: productcatalogservice
+          image: nexuss.mahbod.com:8082/online-boutique/productcatalogservice:PLACEHOLDER
+
+          ports:
+            - name: grpc
+              containerPort: 3550
