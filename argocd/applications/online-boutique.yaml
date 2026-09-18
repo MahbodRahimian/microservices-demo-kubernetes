@@ -1,0 +1,23 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+
+metadata:
+  name: online-boutique
+  namespace: argocd
+
+spec:
+  project: online-boutique
+
+  source:
+    repoURL: http://gitlab.mahbod.com:8080/mahbod1/microservices-demo.git
+    targetRevision: main
+    path: k8s
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: online-boutique
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

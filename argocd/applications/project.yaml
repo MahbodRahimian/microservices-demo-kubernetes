@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+
+metadata:
+  name: online-boutique
+  namespace: argocd
+
+spec:
+  description: Online Boutique GitOps project
+
+  sourceRepos:
+    - http://gitlab.mahbod.com:8080/mahbod1/microservices-demo.git
+
+  destinations:
+    - namespace: online-boutique
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
