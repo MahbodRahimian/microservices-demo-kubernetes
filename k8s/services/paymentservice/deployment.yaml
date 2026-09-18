@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: paymentservice
+  namespace: online-boutique
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: paymentservice
+
+  template:
+    metadata:
+      labels:
+        app: paymentservice
+
+    spec:
+      containers:
+        - name: paymentservice
+          image: nexuss.mahbod.com:8082/online-boutique/paymentservice:PLACEHOLDER
+
+          ports:
+            - name: grpc
+              containerPort: 50051
