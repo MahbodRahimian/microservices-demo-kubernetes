@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: emailservice
+  namespace: online-boutique
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: emailservice
+
+  template:
+    metadata:
+      labels:
+        app: emailservice
+
+    spec:
+      containers:
+        - name: emailservice
+          image: nexuss.mahbod.com:8082/online-boutique/emailservice:PLACEHOLDER
+
+          ports:
+            - name: grpc
+              containerPort: 5000

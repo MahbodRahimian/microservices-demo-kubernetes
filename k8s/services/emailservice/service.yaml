@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: emailservice
+  namespace: online-boutique
+
+spec:
+  selector:
+    app: emailservice
+
+  ports:
+    - name: grpc
+      port: 5000
+      targetPort: 5000
+
+  type: ClusterIP
