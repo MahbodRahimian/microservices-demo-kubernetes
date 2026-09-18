@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: recommendationservice
+  namespace: online-boutique
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: recommendationservice
+
+  template:
+    metadata:
+      labels:
+        app: recommendationservice
+
+    spec:
+      containers:
+        - name: recommendationservice
+          image: nexuss.mahbod.com:8082/online-boutique/recommendationservice:PLACEHOLDER
+
+          ports:
+            - name: grpc
+              containerPort: 8080
+
+          env:
+            - name: PRODUCT_CATALOG_SERVICE_ADDR
+              value: "productcatalogservice:3550"
