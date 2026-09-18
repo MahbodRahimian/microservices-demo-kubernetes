@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: currencyservice
+  namespace: online-boutique
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: currencyservice
+
+  template:
+    metadata:
+      labels:
+        app: currencyservice
+
+    spec:
+      containers:
+        - name: currencyservice
+          image: nexuss.mahbod.com:8082/online-boutique/currencyservice:PLACEHOLDER
+
+          ports:
+            - name: grpc
+              containerPort: 7000
