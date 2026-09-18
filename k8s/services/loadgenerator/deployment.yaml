@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: loadgenerator
+  namespace: online-boutique
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: loadgenerator
+
+  template:
+    metadata:
+      labels:
+        app: loadgenerator
+
+    spec:
+      containers:
+        - name: loadgenerator
+          image: nexuss.mahbod.com:8082/online-boutique/loadgenerator:PLACEHOLDER
+
+          env:
+            - name: FRONTEND_ADDR
+              value: "frontend:80"
+
+            - name: USERS
+              value: "10"
