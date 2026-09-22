@@ -1,17 +1,10 @@
 stages:
   - build
   - push
-  - update-manifest
 
 
 variables:
-  NEXUS_IMAGE_BASE: "$NEXUS_REGISTRY/online-boutique"
-
-
-workflow:
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  IMAGE_BASE: "$NEXUS_REGISTRY/online-boutique"
 
 
 .build_template:
@@ -22,11 +15,15 @@ workflow:
   script:
     - docker --version
     - docker info
-    - docker build -f "$DOCKERFILE" -t "$IMAGE_NAME:$CI_COMMIT_SHA" "$BUILD_CONTEXT"
+    - docker build
+        -f "src/$SERVICE/Dockerfile"
+        -t "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
+        "src/$SERVICE"
 
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - "src/$SERVICE/**/*"
 
 
 .push_template:
@@ -36,51 +33,54 @@ workflow:
 
   script:
     - echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" --password-stdin
-    - docker push "$IMAGE_NAME:$CI_COMMIT_SHA"
+    - docker push "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
+    - echo "Pushed $IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
 
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - "src/$SERVICE/**/*"
 
 
-.update_manifest_template:
-  stage: update-manifest
-
-  image: alpine:3.20
-
-  before_script:
-    - apk add --no-cache curl jq
-
-  script:
-    - echo "Updating GitOps manifest for $SERVICE_NAME"
-    - echo "Image: $IMAGE_NAME:$CI_COMMIT_SHA"
-
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-
-
-adservice-build:
+build:
   extends: .build_template
-  variables:
-    SERVICE_NAME: "adservice"
-    DOCKERFILE: "src/adservice/Dockerfile"
-    BUILD_CONTEXT: "src/adservice"
-    IMAGE_NAME: "$NEXUS_IMAGE_BASE/adservice"
+
+  parallel:
+    matrix:
+      - SERVICE:
+          - adservice
+          - cartservice
+          - checkoutservice
+          - currencyservice
+          - emailservice
+          - frontend
+          - loadgenerator
+          - paymentservice
+          - productcatalogservice
+          - recommendationservice
+          - shippingservice
 
 
-adservice-push:
+push:
   extends: .push_template
-  needs:
-    - adservice-build
-  variables:
-    SERVICE_NAME: "adservice"
-    IMAGE_NAME: "$NEXUS_IMAGE_BASE/adservice"
 
+  parallel:
+    matrix:
+      - SERVICE:
+          - adservice
+          - cartservice
+          - checkoutservice
+          - currencyservice
+          - emailservice
+          - frontend
+          - loadgenerator
+          - paymentservice
+          - productcatalogservice
+          - recommendationservice
+          - shippingservice
 
-adservice-update-manifest:
-  extends: .update_manifest_template
   needs:
-    - adservice-push
-  variables:
-    SERVICE_NAME: "adservice"
-    IMAGE_NAME: "$NEXUS_IMAGE_BASE/adservice"
-    MANIFEST_FILE: "k8s/services/adservice/deployment.yaml"
+    - job: build
+      parallel:
+        matrix:
+          - SERVICE: ['$SERVICE']
