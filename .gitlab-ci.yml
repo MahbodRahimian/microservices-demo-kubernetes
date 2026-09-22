@@ -1,38 +1,20 @@
+```yaml
 stages:
-  - build
-  - push
-
+  - build_and_push
 
 variables:
   IMAGE_BASE: "$NEXUS_REGISTRY/online-boutique"
 
-
-.build_template:
-  stage: build
+.build_and_push_template:
+  stage: build_and_push
 
   image: docker:27-cli
 
   script:
     - docker --version
     - docker info
-    - docker build
-        -f "src/$SERVICE/Dockerfile"
-        -t "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
-        "src/$SERVICE"
-
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      changes:
-        - "src/$SERVICE/**/*"
-
-
-.push_template:
-  stage: push
-
-  image: docker:27-cli
-
-  script:
     - echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" --password-stdin
+    - docker build -f "src/$SERVICE/Dockerfile" -t "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA" "src/$SERVICE"
     - docker push "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
     - echo "Pushed $IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
 
@@ -41,28 +23,8 @@ variables:
       changes:
         - "src/$SERVICE/**/*"
 
-
-build:
-  extends: .build_template
-
-  parallel:
-    matrix:
-      - SERVICE:
-          - adservice
-          - cartservice
-          - checkoutservice
-          - currencyservice
-          - emailservice
-          - frontend
-          - loadgenerator
-          - paymentservice
-          - productcatalogservice
-          - recommendationservice
-          - shippingservice
-
-
-push:
-  extends: .push_template
+build_and_push:
+  extends: .build_and_push_template
 
   parallel:
     matrix:
@@ -78,9 +40,4 @@ push:
           - productcatalogservice
           - recommendationservice
           - shippingservice
-
-  needs:
-    - job: build
-      parallel:
-        matrix:
-          - SERVICE: ['$SERVICE']
+```
