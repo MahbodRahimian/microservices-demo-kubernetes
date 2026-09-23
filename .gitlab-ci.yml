@@ -1,17 +1,16 @@
 stages:
-  - test
+  - build
 
 shippingservice-build:
-  stage: test
+  stage: build
 
-  image: golang:1.23.2-alpine
+  image: docker:27-cli
 
   variables:
-    GOSUMDB: "off"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
 
   script:
-    - cd src/shippingservice
-    - go version
-    - go env GOPROXY
-    - go mod download -x
-    - go build -o shippingservice .
+    - docker version
+    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
+    - docker build -t "$NEXUS_REGISTRY/online-boutique/shippingservice:$CI_COMMIT_SHA" src/shippingservice
+    - docker push "$NEXUS_REGISTRY/online-boutique/shippingservice:$CI_COMMIT_SHA"
