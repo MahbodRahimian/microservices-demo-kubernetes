@@ -12,9 +12,35 @@ variables:
   script:
     - docker --version
     - docker info
+
     - echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" --password-stdin
-    - docker build -f "src/$SERVICE/Dockerfile" -t "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA" "src/$SERVICE"
+
+    - |
+      case "$SERVICE" in
+        cartservice)
+          DOCKERFILE="src/cartservice/src/Dockerfile"
+          CONTEXT="src/cartservice"
+          ;;
+        *)
+          DOCKERFILE="src/$SERVICE/Dockerfile"
+          CONTEXT="src/$SERVICE"
+          ;;
+      esac
+
+      echo "SERVICE=$SERVICE"
+      echo "DOCKERFILE=$DOCKERFILE"
+      echo "CONTEXT=$CONTEXT"
+
+      docker build \
+        --build-arg HTTP_PROXY="$HTTP_PROXY" \
+        --build-arg HTTPS_PROXY="$HTTPS_PROXY" \
+        --build-arg NO_PROXY="$NO_PROXY" \
+        -f "$DOCKERFILE" \
+        -t "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA" \
+        "$CONTEXT"
+
     - docker push "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
+
     - echo "Pushed $IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
 
   rules:
