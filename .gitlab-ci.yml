@@ -12,5 +12,5 @@ shippingservice-build:
   script:
     - docker version
     - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build -t "$NEXUS_REGISTRY/online-boutique/shippingservice:$CI_COMMIT_SHA" src/shippingservice
+    - docker build --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/shippingservice:$CI_COMMIT_SHA" src/shippingservice
     - docker push "$NEXUS_REGISTRY/online-boutique/shippingservice:$CI_COMMIT_SHA"
