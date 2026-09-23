@@ -9,9 +9,6 @@ shippingservice-build:
   variables:
     GOSUMDB: "off"
 
-  before_script:
-    - apk add --no-cache git
-
   script:
     - cd src/shippingservice
     - go version
