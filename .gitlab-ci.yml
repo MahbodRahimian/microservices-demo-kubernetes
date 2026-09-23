@@ -1,67 +1,20 @@
 stages:
-  - build_and_push
+  - test
 
-variables:
-  IMAGE_BASE: "$NEXUS_REGISTRY/online-boutique"
+shippingservice-build:
+  stage: test
 
-.build_and_push_template:
-  stage: build_and_push
+  image: golang:1.23.2-alpine
 
-  image: docker:27-cli
+  variables:
+    GOSUMDB: "off"
+
+  before_script:
+    - apk add --no-cache git
 
   script:
-    - docker --version
-    - docker info
-
-    - echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" --password-stdin
-
-    - |
-      case "$SERVICE" in
-        cartservice)
-          DOCKERFILE="src/cartservice/src/Dockerfile"
-          CONTEXT="src/cartservice"
-          ;;
-        *)
-          DOCKERFILE="src/$SERVICE/Dockerfile"
-          CONTEXT="src/$SERVICE"
-          ;;
-      esac
-
-      echo "SERVICE=$SERVICE"
-      echo "DOCKERFILE=$DOCKERFILE"
-      echo "CONTEXT=$CONTEXT"
-
-      docker build \
-        --build-arg HTTP_PROXY="$HTTP_PROXY" \
-        --build-arg HTTPS_PROXY="$HTTPS_PROXY" \
-        --build-arg NO_PROXY="$NO_PROXY" \
-        -f "$DOCKERFILE" \
-        -t "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA" \
-        "$CONTEXT"
-
-    - docker push "$IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
-
-    - echo "Pushed $IMAGE_BASE/$SERVICE:$CI_COMMIT_SHA"
-
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      changes:
-        - "src/$SERVICE/**/*"
-
-build_and_push:
-  extends: .build_and_push_template
-
-  parallel:
-    matrix:
-      - SERVICE:
-          - adservice
-          - cartservice
-          - checkoutservice
-          - currencyservice
-          - emailservice
-          - frontend
-          - loadgenerator
-          - paymentservice
-          - productcatalogservice
-          - recommendationservice
-          - shippingservice
+    - cd src/shippingservice
+    - go version
+    - go env GOPROXY
+    - go mod download -x
+    - go build -o shippingservice .
