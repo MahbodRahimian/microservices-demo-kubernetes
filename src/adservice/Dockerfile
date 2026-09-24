@@ -1,9 +1,8 @@
-FROM local/eclipse-temurin:24.0.2-jdk-noble AS builder
+FROM eclipse-temurin:21 AS builder
 
 WORKDIR /app
 
-COPY build.gradle gradlew ./
-
+COPY ["build.gradle", "gradlew", "./"]
 COPY gradle gradle
 
 RUN chmod +x gradlew
@@ -16,7 +15,7 @@ RUN chmod +x gradlew
 
 RUN ./gradlew installDist
 
-FROM local/eclipse-temurin:24.0.2-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
