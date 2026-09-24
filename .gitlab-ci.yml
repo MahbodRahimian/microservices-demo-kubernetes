@@ -7,16 +7,9 @@ stages:
 variables:
 DOCKER_HOST: "unix:///var/run/docker.sock"
 
-# ============================================================
-
-# BUILD TEMPLATE
-
-# ============================================================
-
 .build-template:
 stage: build
-image: docker:27-cli
-
+image: "docker:27-cli"
 script:
 - docker version
 - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
@@ -30,27 +23,12 @@ docker build
 -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" 
 "src/$SERVICE_NAME"
 
-# ============================================================
-
-# PUSH TEMPLATE
-
-# ============================================================
-
 .push-template:
 stage: push
-image: docker:27-cli
-
+image: "docker:27-cli"
 script:
 - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-- |
-docker push 
-"$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
-
-# ============================================================
-
-# BUILD JOBS
-
-# ============================================================
+- docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
 
 adservice-build:
 extends: .build-template
@@ -111,12 +89,6 @@ shoppingassistantservice-build:
 extends: .build-template
 variables:
 SERVICE_NAME: "shoppingassistantservice"
-
-# ============================================================
-
-# PUSH JOBS
-
-# ============================================================
 
 adservice-push:
 extends: .push-template
@@ -202,15 +174,9 @@ needs:
 variables:
 SERVICE_NAME: "shoppingassistantservice"
 
-# ============================================================
-
-# UPDATE MANIFESTS
-
-# ============================================================
-
 update-manifests:
 stage: update-manifests
-image: nexuss.mahbod.com:8082/base/alpine:3.20.3
+image: "nexuss.mahbod.com:8082/base/alpine:3.20.3"
 
 needs:
 - adservice-push
@@ -229,27 +195,13 @@ needs:
 script:
 - apk add --no-cache curl jq
 - mkdir -p actions
+- |
+for service in adservice cartservice checkoutservice currencyservice emailservice frontend loadgenerator paymentservice productcatalogservice recommendationservice shippingservice shoppingassistantservice
+do
+FILE_PATH="k8s/services/${service}/deployment.yaml"
+echo "Preparing ${FILE_PATH}"
 
 ```
-- |
-  for service in \
-    adservice \
-    cartservice \
-    checkoutservice \
-    currencyservice \
-    emailservice \
-    frontend \
-    loadgenerator \
-    paymentservice \
-    productcatalogservice \
-    recommendationservice \
-    shippingservice \
-    shoppingassistantservice
-  do
-    FILE_PATH="k8s/services/${service}/deployment.yaml"
-
-    echo "Preparing ${FILE_PATH}"
-
     ENCODED_FILE_PATH=$(printf '%s' "$FILE_PATH" | sed 's|/|%2F|g')
 
     curl \
@@ -262,9 +214,7 @@ script:
 
     jq -r '.content' response.json | base64 -d > deployment.yaml
 
-    sed -E -i \
-      "s|(image:[[:space:]]*nexuss\.mahbod\.com:8082/online-boutique/${service}:)[^[:space:]]+|\1${CI_COMMIT_SHA}|" \
-      deployment.yaml
+    sed -E -i "s|(image:[[:space:]]*nexuss\.mahbod\.com:8082/online-boutique/${service}:)[^[:space:]]+|\1${CI_COMMIT_SHA}|" deployment.yaml
 
     CONTENT=$(cat deployment.yaml)
 
@@ -275,8 +225,7 @@ script:
         action: "update",
         file_path: $file_path,
         content: $content
-      }' \
-      > "actions/${service}.json"
+      }' > "actions/${service}.json"
 
     echo "${service} manifest prepared"
   done
@@ -292,8 +241,7 @@ script:
       branch: $branch,
       commit_message: $commit_message,
       actions: $actions
-    }' \
-    > commit.json
+    }' > commit.json
 
 - |
   curl \
