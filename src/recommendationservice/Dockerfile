@@ -1,12 +1,16 @@
-FROM python:3.12-alpine AS builder
+FROM nexuss.mahbod.com:8082/base/python:3.12.8-alpine AS base
 
-RUN apk add --no-cache wget g++
+FROM base AS builder
+
+RUN apk update \
+    && apk add --no-cache wget g++ \
+    && rm -rf /var/cache/apk/*
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-FROM python:3.12-alpine
+FROM base
 
 ENV PYTHONUNBUFFERED=1
 
