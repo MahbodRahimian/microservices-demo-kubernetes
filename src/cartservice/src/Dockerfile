@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0.100-noble AS builder
+FROM nexuss.mahbod.com:8082/base/dotnet-sdk:9.0.100-noble AS builder
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ RUN dotnet publish cartservice.csproj \
     -c release \
     -o /cartservice
 
-FROM mcr.microsoft.com/dotnet/runtime-deps:9.0.0-noble-chiseled
+FROM nexuss.mahbod.com:8082/base/dotnet-runtime-deps:9.0.0-noble-chiseled
 
 WORKDIR /app
 
