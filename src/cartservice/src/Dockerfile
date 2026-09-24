@@ -1,11 +1,10 @@
-FROM local/dotnet-sdk:9.0.100-noble AS builder
+FROM mcr.microsoft.com/dotnet/sdk:9.0.100-noble AS builder
 
 WORKDIR /app
 
 COPY cartservice.csproj .
 
-RUN dotnet restore cartservice.csproj \
-    -r linux-x64
+RUN dotnet restore cartservice.csproj -r linux-x64
 
 COPY . .
 
@@ -18,7 +17,7 @@ RUN dotnet publish cartservice.csproj \
     -c release \
     -o /cartservice
 
-FROM local/dotnet-runtime-deps:9.0.0-noble-chiseled
+FROM mcr.microsoft.com/dotnet/runtime-deps:9.0.0-noble-chiseled
 
 WORKDIR /app
 
