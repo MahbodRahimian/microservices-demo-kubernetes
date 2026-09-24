@@ -7,6 +7,10 @@ variables:
   DOCKER_HOST: "unix:///var/run/docker.sock"
 
 
+# ============================================================
+# BUILD TEMPLATE
+# ============================================================
+
 .build-template:
   stage: build
   image: docker:27-cli
@@ -20,15 +24,10 @@ variables:
         -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
         "src/$SERVICE_NAME"
 
-    - docker save
-        "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
-        -o "$SERVICE_NAME.tar"
 
-  artifacts:
-    paths:
-      - "$SERVICE_NAME.tar"
-    expire_in: 1 hour
-
+# ============================================================
+# PUSH TEMPLATE
+# ============================================================
 
 .push-template:
   stage: push
@@ -37,15 +36,77 @@ variables:
   script:
     - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
 
-    - docker load -i "$SERVICE_NAME.tar"
-
     - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
 
+
+# ============================================================
+# BUILD JOBS
+# ============================================================
 
 adservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "adservice"
+
+cartservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "cartservice"
+
+checkoutservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "checkoutservice"
+
+currencyservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "currencyservice"
+
+emailservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "emailservice"
+
+frontend-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "frontend"
+
+loadgenerator-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "loadgenerator"
+
+paymentservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "paymentservice"
+
+productcatalogservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "productcatalogservice"
+
+recommendationservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "recommendationservice"
+
+shippingservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "shippingservice"
+
+shoppingassistantservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "shoppingassistantservice"
+
+
+# ============================================================
+# PUSH JOBS
+# ============================================================
 
 adservice-push:
   extends: .push-template
@@ -54,24 +115,12 @@ adservice-push:
   variables:
     SERVICE_NAME: "adservice"
 
-
-cartservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "cartservice"
-
 cartservice-push:
   extends: .push-template
   needs:
     - cartservice-build
   variables:
     SERVICE_NAME: "cartservice"
-
-
-checkoutservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "checkoutservice"
 
 checkoutservice-push:
   extends: .push-template
@@ -80,24 +129,12 @@ checkoutservice-push:
   variables:
     SERVICE_NAME: "checkoutservice"
 
-
-currencyservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "currencyservice"
-
 currencyservice-push:
   extends: .push-template
   needs:
     - currencyservice-build
   variables:
     SERVICE_NAME: "currencyservice"
-
-
-emailservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "emailservice"
 
 emailservice-push:
   extends: .push-template
@@ -106,24 +143,12 @@ emailservice-push:
   variables:
     SERVICE_NAME: "emailservice"
 
-
-frontend-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "frontend"
-
 frontend-push:
   extends: .push-template
   needs:
     - frontend-build
   variables:
     SERVICE_NAME: "frontend"
-
-
-loadgenerator-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "loadgenerator"
 
 loadgenerator-push:
   extends: .push-template
@@ -132,24 +157,12 @@ loadgenerator-push:
   variables:
     SERVICE_NAME: "loadgenerator"
 
-
-paymentservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "paymentservice"
-
 paymentservice-push:
   extends: .push-template
   needs:
     - paymentservice-build
   variables:
     SERVICE_NAME: "paymentservice"
-
-
-productcatalogservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "productcatalogservice"
 
 productcatalogservice-push:
   extends: .push-template
@@ -158,24 +171,12 @@ productcatalogservice-push:
   variables:
     SERVICE_NAME: "productcatalogservice"
 
-
-recommendationservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "recommendationservice"
-
 recommendationservice-push:
   extends: .push-template
   needs:
     - recommendationservice-build
   variables:
     SERVICE_NAME: "recommendationservice"
-
-
-shippingservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "shippingservice"
 
 shippingservice-push:
   extends: .push-template
@@ -184,15 +185,90 @@ shippingservice-push:
   variables:
     SERVICE_NAME: "shippingservice"
 
-
-shoppingassistantservice-build:
-  extends: .build-template
-  variables:
-    SERVICE_NAME: "shoppingassistantservice"
-
 shoppingassistantservice-push:
   extends: .push-template
   needs:
     - shoppingassistantservice-build
   variables:
     SERVICE_NAME: "shoppingassistantservice"
+
+
+# ============================================================
+# UPDATE MANIFESTS
+# ============================================================
+
+update-manifests:
+  stage: update-manifests
+
+  image: alpine:latest
+
+  needs:
+    - adservice-push
+    - cartservice-push
+    - checkoutservice-push
+    - currencyservice-push
+    - emailservice-push
+    - frontend-push
+    - loadgenerator-push
+    - paymentservice-push
+    - productcatalogservice-push
+    - recommendationservice-push
+    - shippingservice-push
+    - shoppingassistantservice-push
+
+  script:
+    - apk add --no-cache curl jq
+
+    - |
+      for service in \
+        adservice \
+        cartservice \
+        checkoutservice \
+        currencyservice \
+        emailservice \
+        frontend \
+        loadgenerator \
+        paymentservice \
+        productcatalogservice \
+        recommendationservice \
+        shippingservice \
+        shoppingassistantservice
+      do
+
+        FILE_PATH="k8s/services/${service}/deployment.yaml"
+
+        echo "Updating ${FILE_PATH}"
+
+        curl --fail --silent --show-error \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          "http://gitlab.mahbod.com:8080/api/v4/projects/mahbod1%2Fmicroservices-demo/repository/files/${FILE_PATH//\//%2F}?ref=main" \
+          -o response.json
+
+        jq -r '.content' response.json | base64 -d > deployment.yaml
+
+        sed -i \
+          "s|nexuss.mahbod.com:8082/online-boutique/${service}:PLACEHOLDER|nexuss.mahbod.com:8082/online-boutique/${service}:${CI_COMMIT_SHA}|g" \
+          deployment.yaml
+
+        CONTENT=$(cat deployment.yaml)
+
+        jq -n \
+          --arg branch "main" \
+          --arg content "$CONTENT" \
+          --arg message "ci: update ${service} image to ${CI_COMMIT_SHA}" \
+          '{
+            branch: $branch,
+            content: $content,
+            commit_message: $message
+          }' > update.json
+
+        curl --fail --silent --show-error \
+          --request PUT \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          --header "Content-Type: application/json" \
+          --data-binary @update.json \
+          "http://gitlab.mahbod.com:8080/api/v4/projects/mahbod1%2Fmicroservices-demo/repository/files/${FILE_PATH//\//%2F}"
+
+        echo "${service} manifest updated successfully"
+
+      done
