@@ -19,19 +19,16 @@ image: docker:27-cli
 
 script:
 - docker version
-
-```
 - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-
-- docker build
-    --add-host=nexuss.mahbod.com:192.168.168.144
-    --build-arg HTTP_PROXY="$HTTP_PROXY"
-    --build-arg HTTPS_PROXY="$HTTPS_PROXY"
-    --build-arg NO_PROXY="$NO_PROXY"
-    --build-arg GOPROXY="$GOPROXY"
-    -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
-    "src/$SERVICE_NAME"
-```
+- |
+docker build 
+--add-host=nexuss.mahbod.com:192.168.168.144 
+--build-arg HTTP_PROXY="$HTTP_PROXY" 
+--build-arg HTTPS_PROXY="$HTTPS_PROXY" 
+--build-arg NO_PROXY="$NO_PROXY" 
+--build-arg GOPROXY="$GOPROXY" 
+-t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" 
+"src/$SERVICE_NAME"
 
 # ============================================================
 
@@ -45,10 +42,9 @@ image: docker:27-cli
 
 script:
 - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-
-```
-- docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
-```
+- |
+docker push 
+"$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
 
 # ============================================================
 
@@ -214,8 +210,7 @@ SERVICE_NAME: "shoppingassistantservice"
 
 update-manifests:
 stage: update-manifests
-
-image: alpine:3.20.3
+image: nexuss.mahbod.com:8082/base/alpine:3.20.3
 
 needs:
 - adservice-push
@@ -233,10 +228,9 @@ needs:
 
 script:
 - apk add --no-cache curl jq
-
-```
 - mkdir -p actions
 
+```
 - |
   for service in \
     adservice \
@@ -252,14 +246,18 @@ script:
     shippingservice \
     shoppingassistantservice
   do
-
     FILE_PATH="k8s/services/${service}/deployment.yaml"
 
-    echo "Updating ${FILE_PATH}"
+    echo "Preparing ${FILE_PATH}"
 
-    curl --fail --silent --show-error \
+    ENCODED_FILE_PATH=$(printf '%s' "$FILE_PATH" | sed 's|/|%2F|g')
+
+    curl \
+      --fail \
+      --silent \
+      --show-error \
       --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-      "http://gitlab.mahbod.com:8080/api/v4/projects/mahbod1%2Fmicroservices-demo/repository/files/${FILE_PATH//\//%2F}?ref=main" \
+      "http://gitlab.mahbod.com:8080/api/v4/projects/mahbod1%2Fmicroservices-demo/repository/files/${ENCODED_FILE_PATH}?ref=main" \
       -o response.json
 
     jq -r '.content' response.json | base64 -d > deployment.yaml
@@ -277,27 +275,31 @@ script:
         action: "update",
         file_path: $file_path,
         content: $content
-      }' > "actions/${service}.json"
+      }' \
+      > "actions/${service}.json"
 
     echo "${service} manifest prepared"
-
   done
 
-- jq -s '.' actions/*.json > actions.json
-
 - |
+  ACTIONS=$(jq -s '.' actions/*.json)
+
   jq -n \
     --arg branch "main" \
-    --arg message "ci: update all service images to ${CI_COMMIT_SHA}" \
-    --slurpfile actions actions.json \
+    --arg commit_message "ci: update all service images to ${CI_COMMIT_SHA}" \
+    --argjson actions "$ACTIONS" \
     '{
       branch: $branch,
-      commit_message: $message,
-      actions: $actions[0]
-    }' > commit.json
+      commit_message: $commit_message,
+      actions: $actions
+    }' \
+    > commit.json
 
 - |
-  curl --fail --silent --show-error \
+  curl \
+    --fail \
+    --silent \
+    --show-error \
     --request POST \
     --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
     --header "Content-Type: application/json" \
@@ -305,4 +307,3 @@ script:
     "http://gitlab.mahbod.com:8080/api/v4/projects/mahbod1%2Fmicroservices-demo/repository/commits"
 
 - echo "All manifests updated successfully"
-```
