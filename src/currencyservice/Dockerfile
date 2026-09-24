@@ -1,9 +1,6 @@
-FROM local/node:20.17.0-alpine AS builder
+FROM node:20.17.0-alpine AS builder
 
-RUN apk add --update --no-cache \
-    python3 \
-    make \
-    g++
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /usr/src/app
 
@@ -11,14 +8,11 @@ COPY package*.json ./
 
 RUN npm install --only=production
 
-FROM local/alpine:3.20.3
-
-RUN apk add --no-cache nodejs
+FROM node:20.17.0-alpine
 
 WORKDIR /usr/src/app
 
 COPY --from=builder /usr/src/app/node_modules ./node_modules
-
 COPY . .
 
 EXPOSE 7000
