@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shoppingassistantservice
+  namespace: online-boutique
+  labels:
+    app: shoppingassistantservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shoppingassistantservice
+  template:
+    metadata:
+      labels:
+        app: shoppingassistantservice
+    spec:
+      containers:
+        - name: shoppingassistantservice
+          image: nexuss.mahbod.com:8082/online-boutique/shoppingassistantservice:PLACEHOLDER
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
