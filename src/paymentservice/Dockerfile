@@ -1,4 +1,4 @@
-FROM node:20.17.0-alpine AS builder
+FROM nexuss.mahbod.com:8082/base/python:3.12.7-alpine AS builder
 
 RUN apk add --no-cache python3 make g++
 
