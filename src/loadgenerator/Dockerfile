@@ -1,10 +1,12 @@
-FROM python:3.12-alpine AS builder
+FROM nexuss.mahbod.com:8082/base/python:3.12.6-slim AS base
+
+FROM base AS builder
 
 COPY requirements.txt .
 
-RUN pip install --prefix="/install" --no-cache-dir -r requirements.txt
+RUN pip install --prefix="/install" -r requirements.txt
 
-FROM python:3.12-alpine
+FROM base
 
 WORKDIR /loadgen
 
