@@ -1,8 +1,11 @@
 stages:
   - build
+  - push
+  - update-manifests
 
 variables:
   DOCKER_HOST: "unix:///var/run/docker.sock"
+
 
 .build-template:
   stage: build
@@ -10,61 +13,186 @@ variables:
 
   script:
     - docker version
+
+    - docker build
+        --add-host=nexuss.mahbod.com:192.168.168.144
+        --build-arg GOPROXY="$GOPROXY"
+        -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+        "src/$SERVICE_NAME"
+
+    - docker save
+        "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+        -o "$SERVICE_NAME.tar"
+
+  artifacts:
+    paths:
+      - "$SERVICE_NAME.tar"
+    expire_in: 1 hour
+
+
+.push-template:
+  stage: push
+  image: docker:27-cli
+
+  script:
     - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
+
+    - docker load -i "$SERVICE_NAME.tar"
+
     - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+
 
 adservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "adservice"
 
+adservice-push:
+  extends: .push-template
+  needs:
+    - adservice-build
+  variables:
+    SERVICE_NAME: "adservice"
+
+
 cartservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "cartservice"
+
+cartservice-push:
+  extends: .push-template
+  needs:
+    - cartservice-build
+  variables:
+    SERVICE_NAME: "cartservice"
+
 
 checkoutservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "checkoutservice"
 
+checkoutservice-push:
+  extends: .push-template
+  needs:
+    - checkoutservice-build
+  variables:
+    SERVICE_NAME: "checkoutservice"
+
+
 currencyservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "currencyservice"
+
+currencyservice-push:
+  extends: .push-template
+  needs:
+    - currencyservice-build
+  variables:
+    SERVICE_NAME: "currencyservice"
+
 
 emailservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "emailservice"
 
+emailservice-push:
+  extends: .push-template
+  needs:
+    - emailservice-build
+  variables:
+    SERVICE_NAME: "emailservice"
+
+
 frontend-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "frontend"
+
+frontend-push:
+  extends: .push-template
+  needs:
+    - frontend-build
+  variables:
+    SERVICE_NAME: "frontend"
+
 
 loadgenerator-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "loadgenerator"
 
+loadgenerator-push:
+  extends: .push-template
+  needs:
+    - loadgenerator-build
+  variables:
+    SERVICE_NAME: "loadgenerator"
+
+
 paymentservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "paymentservice"
+
+paymentservice-push:
+  extends: .push-template
+  needs:
+    - paymentservice-build
+  variables:
+    SERVICE_NAME: "paymentservice"
+
 
 productcatalogservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "productcatalogservice"
 
+productcatalogservice-push:
+  extends: .push-template
+  needs:
+    - productcatalogservice-build
+  variables:
+    SERVICE_NAME: "productcatalogservice"
+
+
 recommendationservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "recommendationservice"
 
+recommendationservice-push:
+  extends: .push-template
+  needs:
+    - recommendationservice-build
+  variables:
+    SERVICE_NAME: "recommendationservice"
+
+
 shippingservice-build:
   extends: .build-template
   variables:
     SERVICE_NAME: "shippingservice"
+
+shippingservice-push:
+  extends: .push-template
+  needs:
+    - shippingservice-build
+  variables:
+    SERVICE_NAME: "shippingservice"
+
+
+shoppingassistantservice-build:
+  extends: .build-template
+  variables:
+    SERVICE_NAME: "shoppingassistantservice"
+
+shoppingassistantservice-push:
+  extends: .push-template
+  needs:
+    - shoppingassistantservice-build
+  variables:
+    SERVICE_NAME: "shoppingassistantservice"
