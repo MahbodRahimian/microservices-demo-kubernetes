@@ -1,14 +1,16 @@
 FROM nexuss.mahbod.com:8082/base/node:20.17.0-alpine AS builder
 
-RUN apk add --no-cache python3 make g++
-
 WORKDIR /usr/src/app
+
+RUN apk add --update --no-cache python3 make g++
 
 COPY package*.json ./
 
 RUN npm install --only=production
 
-FROM node:20.17.0-alpine
+COPY . .
+
+FROM nexuss.mahbod.com:8082/base/node:20.17.0-alpine
 
 WORKDIR /usr/src/app
 
