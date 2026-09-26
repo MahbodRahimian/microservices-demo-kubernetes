@@ -1,22 +1,8 @@
-FROM nexuss.mahbod.com:8082/base/python:3.12.8-slim AS base
-
-FROM base AS builder
-
-RUN apt-get -qq update \
-    && apt-get install -y --no-install-recommends g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-
-RUN pip install -r requirements.txt
-
-FROM base
+FROM nexuss.mahbod.com:8082/online-boutique/shoppingassistant-deps:1.0
 
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /shoppingassistantservice
-
-COPY --from=builder /usr/local/lib/python3.12/ /usr/local/lib/python3.12/
 
 COPY . .
 
