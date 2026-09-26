@@ -1,5 +1,15 @@
 FROM nexuss.mahbod.com:8082/base/dotnet-sdk:9.0.100-noble AS builder
 
+
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV NO_PROXY=${NO_PROXY}
+
+
 WORKDIR /app
 
 COPY cartservice.csproj .
