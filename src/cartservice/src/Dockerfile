@@ -11,10 +11,11 @@ ENV NO_PROXY=${NO_PROXY}
 WORKDIR /app
 
 COPY cartservice.csproj .
+COPY NuGet.Config .
 
 RUN dotnet restore cartservice.csproj \
     -r linux-x64 \
-    --source http://nexuss.mahbod.com:8081/repository/nuget-group/index.json
+    --configfile NuGet.Config
 
 COPY . .
 
