@@ -3,7 +3,7 @@ FROM nexuss.mahbod.com:8082/base/golang:1.23.4-alpine AS builder
 WORKDIR /src
 
 ARG GOPROXY
-ENV GOPROXY=${GOPROXY}/repository/go-proxy/
+ENV GOPROXY=${GOPROXY}
 
 COPY go.mod go.sum ./
 
