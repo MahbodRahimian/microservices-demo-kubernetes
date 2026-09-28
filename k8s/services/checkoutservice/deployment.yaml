@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: checkoutservice
-          image: nexuss.mahbod.com:8082/online-boutique/checkoutservice:PLACEHOLDER
+          image: nexuss.mahbod.com:8082/online-boutique/checkoutservice:5fac4d02ac631787e2f5178b78c5337b7119023e
 
           ports:
             - name: grpc

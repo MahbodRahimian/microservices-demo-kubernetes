@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: nexuss.mahbod.com:8082/online-boutique/frontend:PLACEHOLDER
+          image: nexuss.mahbod.com:8082/online-boutique/frontend:5fac4d02ac631787e2f5178b78c5337b7119023e
 
           ports:
             - name: http
