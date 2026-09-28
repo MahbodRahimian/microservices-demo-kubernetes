@@ -260,7 +260,7 @@ shoppingassistantservice-push:
 
 update-manifests:
   stage: update-manifests
-  image: "nexuss.mahbod.com:8082/base/alpine:3.20.3"
+  image: "nexuss.mahbod.com:8082/base/alpine-curl-jq:3.20.3"
   needs:
     - adservice-push
     - cartservice-push
