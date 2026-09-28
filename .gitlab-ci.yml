@@ -5,292 +5,259 @@ stages:
 
 variables:
   DOCKER_HOST: "unix:///var/run/docker.sock"
+  IMAGE_REGISTRY: "nexuss.mahbod.com:8082"
+  IMAGE_NAMESPACE: "online-boutique"
 
-adservice-build:
+  # All package repositories are internal.
+  GOPROXY: "http://nexuss.mahbod.com:8081/repository/go-group"
+  NUGET_SOURCE: "http://nexuss.mahbod.com:8081/repository/nuget-group/index.json"
+
+  # Internal Nexus / GitLab are not sent through the proxy.
+  NO_PROXY: "localhost,127.0.0.1,.mahbod.com"
+
+# ============================================================
+# BUILD
+# ============================================================
+
+build-services:
   stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "adservice"
+
+  image: "nexuss.mahbod.com:8082/base/docker:27-cli"
+
+  parallel:
+    matrix:
+      - SERVICE_NAME: "adservice"
+        BUILD_CONTEXT: "src/adservice"
+
+      - SERVICE_NAME: "cartservice"
+        BUILD_CONTEXT: "src/cartservice/src"
+
+      - SERVICE_NAME: "checkoutservice"
+        BUILD_CONTEXT: "src/checkoutservice"
+
+      - SERVICE_NAME: "currencyservice"
+        BUILD_CONTEXT: "src/currencyservice"
+
+      - SERVICE_NAME: "emailservice"
+        BUILD_CONTEXT: "src/emailservice"
+
+      - SERVICE_NAME: "frontend"
+        BUILD_CONTEXT: "src/frontend"
+
+      - SERVICE_NAME: "loadgenerator"
+        BUILD_CONTEXT: "src/loadgenerator"
+
+      - SERVICE_NAME: "paymentservice"
+        BUILD_CONTEXT: "src/paymentservice"
+
+      - SERVICE_NAME: "productcatalogservice"
+        BUILD_CONTEXT: "src/productcatalogservice"
+
+      - SERVICE_NAME: "recommendationservice"
+        BUILD_CONTEXT: "src/recommendationservice"
+
+      - SERVICE_NAME: "shippingservice"
+        BUILD_CONTEXT: "src/shippingservice"
+
+      - SERVICE_NAME: "shoppingassistantservice"
+        BUILD_CONTEXT: "src/shoppingassistantservice"
+
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "src/$SERVICE_NAME/**/*"
+
   script:
     - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
 
-cartservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "cartservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME/src"
+    - echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" --username "$NEXUS_USERNAME" --password-stdin
 
-checkoutservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "checkoutservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
+    - >
+      docker build
+      --add-host=nexuss.mahbod.com:192.168.168.144
+      --build-arg HTTP_PROXY="$HTTP_PROXY"
+      --build-arg HTTPS_PROXY="$HTTPS_PROXY"
+      --build-arg NO_PROXY="$NO_PROXY"
+      --build-arg GOPROXY="$GOPROXY"
+      -t "$IMAGE_REGISTRY/$IMAGE_NAMESPACE/$SERVICE_NAME:$CI_COMMIT_SHA"
+      "$BUILD_CONTEXT"
 
-currencyservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "currencyservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
 
-emailservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "emailservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
+# ============================================================
+# PUSH
+# ============================================================
 
-frontend-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "frontend"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
-
-loadgenerator-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "loadgenerator"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
-
-paymentservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "paymentservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
-
-productcatalogservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "productcatalogservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
-
-recommendationservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "recommendationservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
-
-shippingservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "shippingservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
-
-shoppingassistantservice-build:
-  stage: build
-  image: "docker:27-cli"
-  variables:
-    SERVICE_NAME: "shoppingassistantservice"
-  script:
-    - docker version
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker build --add-host=nexuss.mahbod.com:192.168.168.144 --build-arg HTTP_PROXY="$HTTP_PROXY" --build-arg HTTPS_PROXY="$HTTPS_PROXY" --build-arg NO_PROXY="$NO_PROXY" --build-arg GOPROXY="$GOPROXY" -t "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA" "src/$SERVICE_NAME"
-
-adservice-push:
+push-services:
   stage: push
-  image: "docker:27-cli"
-  needs:
-    - adservice-build
-  variables:
-    SERVICE_NAME: "adservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
 
-cartservice-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - cartservice-build
-  variables:
-    SERVICE_NAME: "cartservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+  image: "nexuss.mahbod.com:8082/base/docker:27-cli"
 
-checkoutservice-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - checkoutservice-build
-  variables:
-    SERVICE_NAME: "checkoutservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+  parallel:
+    matrix:
+      - SERVICE_NAME: "adservice"
+        BUILD_CONTEXT: "src/adservice"
 
-currencyservice-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - currencyservice-build
-  variables:
-    SERVICE_NAME: "currencyservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+      - SERVICE_NAME: "cartservice"
+        BUILD_CONTEXT: "src/cartservice/src"
 
-emailservice-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - emailservice-build
-  variables:
-    SERVICE_NAME: "emailservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+      - SERVICE_NAME: "checkoutservice"
+        BUILD_CONTEXT: "src/checkoutservice"
 
-frontend-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - frontend-build
-  variables:
-    SERVICE_NAME: "frontend"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+      - SERVICE_NAME: "currencyservice"
+        BUILD_CONTEXT: "src/currencyservice"
 
-loadgenerator-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - loadgenerator-build
-  variables:
-    SERVICE_NAME: "loadgenerator"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+      - SERVICE_NAME: "emailservice"
+        BUILD_CONTEXT: "src/emailservice"
 
-paymentservice-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - paymentservice-build
-  variables:
-    SERVICE_NAME: "paymentservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+      - SERVICE_NAME: "frontend"
+        BUILD_CONTEXT: "src/frontend"
 
-productcatalogservice-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - productcatalogservice-build
-  variables:
-    SERVICE_NAME: "productcatalogservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+      - SERVICE_NAME: "loadgenerator"
+        BUILD_CONTEXT: "src/loadgenerator"
 
-recommendationservice-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - recommendationservice-build
-  variables:
-    SERVICE_NAME: "recommendationservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+      - SERVICE_NAME: "paymentservice"
+        BUILD_CONTEXT: "src/paymentservice"
 
-shippingservice-push:
-  stage: push
-  image: "docker:27-cli"
-  needs:
-    - shippingservice-build
-  variables:
-    SERVICE_NAME: "shippingservice"
-  script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+      - SERVICE_NAME: "productcatalogservice"
+        BUILD_CONTEXT: "src/productcatalogservice"
 
-shoppingassistantservice-push:
-  stage: push
-  image: "docker:27-cli"
+      - SERVICE_NAME: "recommendationservice"
+        BUILD_CONTEXT: "src/recommendationservice"
+
+      - SERVICE_NAME: "shippingservice"
+        BUILD_CONTEXT: "src/shippingservice"
+
+      - SERVICE_NAME: "shoppingassistantservice"
+        BUILD_CONTEXT: "src/shoppingassistantservice"
+
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "src/$SERVICE_NAME/**/*"
+
   needs:
-    - shoppingassistantservice-build
-  variables:
-    SERVICE_NAME: "shoppingassistantservice"
+    - job: build-services
+      parallel:
+        matrix:
+          - SERVICE_NAME: ['$[[ matrix.SERVICE_NAME ]]']
+            BUILD_CONTEXT: ['$[[ matrix.BUILD_CONTEXT ]]']
+
   script:
-    - docker login "$NEXUS_REGISTRY" -u "$NEXUS_USERNAME" -p "$NEXUS_PASSWORD"
-    - docker push "$NEXUS_REGISTRY/online-boutique/$SERVICE_NAME:$CI_COMMIT_SHA"
+    - echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" --username "$NEXUS_USERNAME" --password-stdin
+
+    - docker push "$IMAGE_REGISTRY/$IMAGE_NAMESPACE/$SERVICE_NAME:$CI_COMMIT_SHA"
+
+
+# ============================================================
+# UPDATE MANIFESTS
+# ============================================================
 
 update-manifests:
   stage: update-manifests
+
   image: "nexuss.mahbod.com:8082/base/alpine-curl-jq:3.20.3"
-  needs:
-    - adservice-push
-    - cartservice-push
-    - checkoutservice-push
-    - currencyservice-push
-    - emailservice-push
-    - frontend-push
-    - loadgenerator-push
-    - paymentservice-push
-    - productcatalogservice-push
-    - recommendationservice-push
-    - shippingservice-push
-    - shoppingassistantservice-push
+
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      changes:
+        - "src/adservice/**/*"
+        - "src/cartservice/**/*"
+        - "src/checkoutservice/**/*"
+        - "src/currencyservice/**/*"
+        - "src/emailservice/**/*"
+        - "src/frontend/**/*"
+        - "src/loadgenerator/**/*"
+        - "src/paymentservice/**/*"
+        - "src/productcatalogservice/**/*"
+        - "src/recommendationservice/**/*"
+        - "src/shippingservice/**/*"
+        - "src/shoppingassistantservice/**/*"
+
   script:
-    
-    - mkdir -p actions
+
+    # ----------------------------------------------------------
+    # GitLab API
+    # ----------------------------------------------------------
+
     - |
-      for service in adservice cartservice checkoutservice currencyservice emailservice frontend loadgenerator paymentservice productcatalogservice recommendationservice shippingservice shoppingassistantservice
+      export GITLAB_API="http://gitlab.mahbod.com:8080/api/v4"
+      export PROJECT_ID="mahbod1%2Fmicroservices-demo"
+
+    # ----------------------------------------------------------
+    # Find files changed by this commit
+    # ----------------------------------------------------------
+
+    - |
+      curl --fail --silent --show-error \
+        --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+        "${GITLAB_API}/projects/${PROJECT_ID}/repository/commits/${CI_COMMIT_SHA}/diff" \
+        -o commit-diff.json
+
+    # ----------------------------------------------------------
+    # Determine changed services
+    # ----------------------------------------------------------
+
+    - |
+      SERVICES=""
+
+      for service in \
+        adservice \
+        cartservice \
+        checkoutservice \
+        currencyservice \
+        emailservice \
+        frontend \
+        loadgenerator \
+        paymentservice \
+        productcatalogservice \
+        recommendationservice \
+        shippingservice \
+        shoppingassistantservice
       do
+
+        if jq -e --arg service "$service" '
+          any(
+            .[];
+            (.new_path | startswith("src/" + $service + "/"))
+            or
+            (.old_path | startswith("src/" + $service + "/"))
+          )
+        ' commit-diff.json > /dev/null
+        then
+          SERVICES="$SERVICES $service"
+        fi
+
+      done
+
+      echo "Changed services:"
+      echo "$SERVICES"
+
+    # ----------------------------------------------------------
+    # Prepare GitLab API actions
+    # ----------------------------------------------------------
+
+    - mkdir -p actions
+
+    - |
+      for service in $SERVICES
+      do
+
         FILE_PATH="k8s/services/${service}/deployment.yaml"
+
         ENCODED_FILE_PATH=$(printf '%s' "$FILE_PATH" | sed 's|/|%2F|g')
+
+        echo "Updating ${FILE_PATH}"
 
         curl --fail --silent --show-error \
           --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-          "http://gitlab.mahbod.com:8080/api/v4/projects/mahbod1%2Fmicroservices-demo/repository/files/${ENCODED_FILE_PATH}?ref=main" \
+          "${GITLAB_API}/projects/${PROJECT_ID}/repository/files/${ENCODED_FILE_PATH}?ref=main" \
           -o response.json
 
         jq -r '.content' response.json | base64 -d > deployment.yaml
 
-        sed -E -i "s|(image:[[:space:]]*nexuss\.mahbod\.com:8082/online-boutique/${service}:)[^[:space:]]+|\1${CI_COMMIT_SHA}|" deployment.yaml
+        sed -E -i \
+          "s|(image:[[:space:]]*${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/${service}:)[^[:space:]]+|\1${CI_COMMIT_SHA}|" \
+          deployment.yaml
 
         CONTENT=$(cat deployment.yaml)
 
@@ -302,23 +269,34 @@ update-manifests:
             file_path: $file_path,
             content: $content
           }' > "actions/${service}.json"
+
       done
+
+    # ----------------------------------------------------------
+    # Create one GitLab commit
+    # ----------------------------------------------------------
+
     - |
       ACTIONS=$(jq -s '.' actions/*.json)
 
       jq -n \
         --arg branch "main" \
-        --arg commit_message "ci: update all service images to ${CI_COMMIT_SHA}" \
+        --arg commit_message "ci: update service images to ${CI_COMMIT_SHA} [skip ci]" \
         --argjson actions "$ACTIONS" \
         '{
           branch: $branch,
           commit_message: $commit_message,
           actions: $actions
         }' > commit.json
+
+    # ----------------------------------------------------------
+    # Push manifest update through GitLab API
+    # ----------------------------------------------------------
+
     - |
       curl --fail --silent --show-error \
         --request POST \
         --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
         --header "Content-Type: application/json" \
         --data-binary @commit.json \
-        "http://gitlab.mahbod.com:8080/api/v4/projects/mahbod1%2Fmicroservices-demo/repository/commits"
+        "${GITLAB_API}/projects/${PROJECT_ID}/repository/commits"
