@@ -275,8 +275,7 @@ update-manifests:
     - shippingservice-push
     - shoppingassistantservice-push
   script:
-
-    - apk add --no-cache curl jq
+    
     - mkdir -p actions
     - |
       for service in adservice cartservice checkoutservice currencyservice emailservice frontend loadgenerator paymentservice productcatalogservice recommendationservice shippingservice shoppingassistantservice
