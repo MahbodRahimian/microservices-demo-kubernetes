@@ -11,8 +11,6 @@ variables:
 
   GITLAB_API_URL: "http://gitlab.mahbod.com:8080/api/v4"
 
-  PROJECT_ID: "mahbod1%2Fmicroservices-demo"
-
   IMAGE_NAMESPACE: "online-boutique"
 
 
@@ -181,7 +179,8 @@ update-manifests:
 
       echo "=========================================="
       echo "Detecting changed services"
-      echo "Commit: ${CI_COMMIT_SHA}"
+      echo "Commit:     ${CI_COMMIT_SHA}"
+      echo "Project ID: ${CI_PROJECT_ID}"
       echo "=========================================="
 
     # --------------------------------------------------------
@@ -193,8 +192,20 @@ update-manifests:
         --silent \
         --show-error \
         --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-        "${GITLAB_API_URL}/projects/${PROJECT_ID}/repository/commits/${CI_COMMIT_SHA}/diff" \
+        "${GITLAB_API_URL}/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHA}/diff" \
         -o diff.json
+
+    # --------------------------------------------------------
+    # Show changed files
+    # --------------------------------------------------------
+
+    - |
+      echo "Changed files:"
+
+      jq -r '
+        .[] |
+        (.new_path // .old_path)
+      ' diff.json || true
 
     # --------------------------------------------------------
     # Detect changed services
@@ -212,8 +223,10 @@ update-manifests:
       > changed-services.txt || true
 
     - |
+      echo "=========================================="
       echo "Changed services:"
       cat changed-services.txt || true
+      echo "=========================================="
 
     - |
       if [ ! -s changed-services.txt ]; then
@@ -236,16 +249,18 @@ update-manifests:
 
         ENCODED_FILE_PATH=$(printf '%s' "${FILE_PATH}" | sed 's|/|%2F|g')
 
+        # Get current deployment.yaml from the exact triggering commit
         curl --fail \
           --silent \
           --show-error \
           --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-          "${GITLAB_API_URL}/projects/${PROJECT_ID}/repository/files/${ENCODED_FILE_PATH}?ref=${CI_COMMIT_SHA}" \
+          "${GITLAB_API_URL}/projects/${CI_PROJECT_ID}/repository/files/${ENCODED_FILE_PATH}?ref=${CI_COMMIT_SHA}" \
           -o response.json
 
         jq -r '.content' response.json |
           base64 -d > deployment.yaml
 
+        # Replace only the image tag
         sed -E -i \
           "s|(image:[[:space:]]*${NEXUS_REGISTRY//./\\.}/${IMAGE_NAMESPACE}/${service}:)[^[:space:]]+|\\1${CI_COMMIT_SHA}|" \
           deployment.yaml
@@ -264,7 +279,7 @@ update-manifests:
       done < changed-services.txt
 
     # --------------------------------------------------------
-    # Create one GitLab commit containing all manifest changes
+    # Create one GitLab commit
     # --------------------------------------------------------
 
     - |
@@ -281,7 +296,7 @@ update-manifests:
         }' > commit.json
 
     # --------------------------------------------------------
-    # Commit manifests to GitLab
+    # Commit manifests
     # --------------------------------------------------------
 
     - |
@@ -292,7 +307,7 @@ update-manifests:
         --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
         --header "Content-Type: application/json" \
         --data-binary @commit.json \
-        "${GITLAB_API_URL}/projects/${PROJECT_ID}/repository/commits"
+        "${GITLAB_API_URL}/projects/${CI_PROJECT_ID}/repository/commits"
 
     - |
       echo "=========================================="
