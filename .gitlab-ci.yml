@@ -3,20 +3,11 @@ stages:
   - push
   - update-manifests
 
-
 variables:
   DOCKER_HOST: "unix:///var/run/docker.sock"
-
   NEXUS_REGISTRY: "nexuss.mahbod.com:8082"
-
   GITLAB_API_URL: "http://gitlab.mahbod.com:8080/api/v4"
-
   IMAGE_NAMESPACE: "online-boutique"
-
-
-# ============================================================
-# Service Matrix
-# ============================================================
 
 .service_matrix: &service_matrix
   parallel:
@@ -24,61 +15,43 @@ variables:
       - SERVICE_NAME: "adservice"
         BUILD_CONTEXT: "src/adservice"
         CHANGES_PATH: "src/adservice"
-
       - SERVICE_NAME: "cartservice"
         BUILD_CONTEXT: "src/cartservice/src"
         CHANGES_PATH: "src/cartservice"
-
       - SERVICE_NAME: "checkoutservice"
         BUILD_CONTEXT: "src/checkoutservice"
         CHANGES_PATH: "src/checkoutservice"
-
       - SERVICE_NAME: "currencyservice"
         BUILD_CONTEXT: "src/currencyservice"
         CHANGES_PATH: "src/currencyservice"
-
       - SERVICE_NAME: "emailservice"
         BUILD_CONTEXT: "src/emailservice"
         CHANGES_PATH: "src/emailservice"
-
       - SERVICE_NAME: "frontend"
         BUILD_CONTEXT: "src/frontend"
         CHANGES_PATH: "src/frontend"
-
       - SERVICE_NAME: "loadgenerator"
         BUILD_CONTEXT: "src/loadgenerator"
         CHANGES_PATH: "src/loadgenerator"
-
       - SERVICE_NAME: "paymentservice"
         BUILD_CONTEXT: "src/paymentservice"
         CHANGES_PATH: "src/paymentservice"
-
       - SERVICE_NAME: "productcatalogservice"
         BUILD_CONTEXT: "src/productcatalogservice"
         CHANGES_PATH: "src/productcatalogservice"
-
       - SERVICE_NAME: "recommendationservice"
         BUILD_CONTEXT: "src/recommendationservice"
         CHANGES_PATH: "src/recommendationservice"
-
       - SERVICE_NAME: "shippingservice"
         BUILD_CONTEXT: "src/shippingservice"
         CHANGES_PATH: "src/shippingservice"
-
       - SERVICE_NAME: "shoppingassistantservice"
         BUILD_CONTEXT: "src/shoppingassistantservice"
         CHANGES_PATH: "src/shoppingassistantservice"
 
-
-# ============================================================
-# Build
-# ============================================================
-
 build-services:
   stage: build
-
   image: "nexuss.mahbod.com:8082/base/docker:27-cli"
-
   <<: *service_matrix
 
   rules:
@@ -114,16 +87,9 @@ build-services:
         -t "${NEXUS_REGISTRY}/${IMAGE_NAMESPACE}/${SERVICE_NAME}:${CI_COMMIT_SHA}" \
         "${BUILD_CONTEXT}"
 
-
-# ============================================================
-# Push
-# ============================================================
-
 push-services:
   stage: push
-
   image: "nexuss.mahbod.com:8082/base/docker:27-cli"
-
   <<: *service_matrix
 
   needs:
@@ -158,14 +124,8 @@ push-services:
       docker push \
         "${NEXUS_REGISTRY}/${IMAGE_NAMESPACE}/${SERVICE_NAME}:${CI_COMMIT_SHA}"
 
-
-# ============================================================
-# Update Kubernetes Manifests
-# ============================================================
-
 update-manifests:
   stage: update-manifests
-
   image: "nexuss.mahbod.com:8082/base/alpine-curl-jq:3.20.3"
 
   rules:
@@ -179,53 +139,74 @@ update-manifests:
 
       echo "=========================================="
       echo "Detecting changed services"
-      echo "Commit:     ${CI_COMMIT_SHA}"
-      echo "Project ID: ${CI_PROJECT_ID}"
+      echo "Commit:        ${CI_COMMIT_SHA}"
+      echo "Before commit: ${CI_COMMIT_BEFORE_SHA}"
+      echo "Project ID:    ${CI_PROJECT_ID}"
       echo "=========================================="
 
-    # --------------------------------------------------------
-    # Get changed files from current commit
-    # --------------------------------------------------------
-
     - |
-      curl --fail \
-        --silent \
-        --show-error \
-        --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-        "${GITLAB_API_URL}/projects/${CI_PROJECT_ID}/repository/commits/${CI_COMMIT_SHA}/diff" \
-        -o diff.json
+      if [ "${CI_COMMIT_BEFORE_SHA}" = "0000000000000000000000000000000000000000" ]; then
+        echo "No previous commit detected."
+        echo "This is the first commit, so all services will be considered changed."
 
-    # --------------------------------------------------------
-    # Show changed files
-    # --------------------------------------------------------
+        cat > changed-services.txt <<'EOF'
+      adservice
+      cartservice
+      checkoutservice
+      currencyservice
+      emailservice
+      frontend
+      loadgenerator
+      paymentservice
+      productcatalogservice
+      recommendationservice
+      shippingservice
+      shoppingassistantservice
+      EOF
 
-    - |
-      echo "Changed files:"
+      else
+        echo "Comparing:"
+        echo "FROM: ${CI_COMMIT_BEFORE_SHA}"
+        echo "TO:   ${CI_COMMIT_SHA}"
 
-      jq -r '
-        .[] |
-        (.new_path // .old_path)
-      ' diff.json || true
+        curl --fail \
+          --silent \
+          --show-error \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          "${GITLAB_API_URL}/projects/${CI_PROJECT_ID}/repository/compare?from=${CI_COMMIT_BEFORE_SHA}&to=${CI_COMMIT_SHA}" \
+          -o compare.json
 
-    # --------------------------------------------------------
-    # Detect changed services
-    # --------------------------------------------------------
+        echo "=========================================="
+        echo "Changed files:"
+        echo "=========================================="
 
-    - |
-      jq -r '
-        .[] |
-        (.new_path // .old_path) |
-        select(startswith("src/")) |
-        split("/")[1]
-      ' diff.json |
-      sort -u |
-      grep -E '^(adservice|cartservice|checkoutservice|currencyservice|emailservice|frontend|loadgenerator|paymentservice|productcatalogservice|recommendationservice|shippingservice|shoppingassistantservice)$' \
-      > changed-services.txt || true
+        jq -r '
+          .diffs[] |
+          (.new_path // .old_path)
+        ' compare.json || true
+
+        echo "=========================================="
+        echo "Detecting changed services..."
+        echo "=========================================="
+
+        jq -r '
+          .diffs[] |
+          (.new_path // .old_path) |
+          select(startswith("src/")) |
+          split("/")[1]
+        ' compare.json |
+        sort -u |
+        grep -E '^(adservice|cartservice|checkoutservice|currencyservice|emailservice|frontend|loadgenerator|paymentservice|productcatalogservice|recommendationservice|shippingservice|shoppingassistantservice)$' \
+        > changed-services.txt || true
+      fi
 
     - |
       echo "=========================================="
       echo "Changed services:"
+      echo "=========================================="
+
       cat changed-services.txt || true
+
       echo "=========================================="
 
     - |
@@ -234,22 +215,19 @@ update-manifests:
         exit 0
       fi
 
-    # --------------------------------------------------------
-    # Prepare action files
-    # --------------------------------------------------------
-
     - mkdir -p actions
 
     - |
       while IFS= read -r service
       do
+        echo "=========================================="
         echo "Updating manifest for: ${service}"
+        echo "=========================================="
 
         FILE_PATH="k8s/services/${service}/deployment.yaml"
 
         ENCODED_FILE_PATH=$(printf '%s' "${FILE_PATH}" | sed 's|/|%2F|g')
 
-        # Get current deployment.yaml from the exact triggering commit
         curl --fail \
           --silent \
           --show-error \
@@ -260,10 +238,15 @@ update-manifests:
         jq -r '.content' response.json |
           base64 -d > deployment.yaml
 
-        # Replace only the image tag
+        echo "Current image:"
+        grep 'image:' deployment.yaml || true
+
         sed -E -i \
-          "s|(image:[[:space:]]*${NEXUS_REGISTRY//./\\.}/${IMAGE_NAMESPACE}/${service}:)[^[:space:]]+|\\1${CI_COMMIT_SHA}|" \
+          "s|(image:[[:space:]]*${NEXUS_REGISTRY//./\\.}/${IMAGE_NAMESPACE}/${service}:)[^[:space:]]+|\1${CI_COMMIT_SHA}|" \
           deployment.yaml
+
+        echo "Updated image:"
+        grep 'image:' deployment.yaml || true
 
         CONTENT=$(cat deployment.yaml)
 
@@ -278,10 +261,6 @@ update-manifests:
 
       done < changed-services.txt
 
-    # --------------------------------------------------------
-    # Create one GitLab commit
-    # --------------------------------------------------------
-
     - |
       ACTIONS=$(jq -s '.' actions/*.json)
 
@@ -295,9 +274,12 @@ update-manifests:
           actions: $actions
         }' > commit.json
 
-    # --------------------------------------------------------
-    # Commit manifests
-    # --------------------------------------------------------
+    - |
+      echo "=========================================="
+      echo "Creating manifest update commit"
+      echo "=========================================="
+
+      cat commit.json
 
     - |
       curl --fail \
