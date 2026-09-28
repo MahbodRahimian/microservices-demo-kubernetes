@@ -3,20 +3,77 @@ stages:
   - push
   - update-manifests
 
+
 variables:
   DOCKER_HOST: "unix:///var/run/docker.sock"
-  IMAGE_REGISTRY: "nexuss.mahbod.com:8082"
+
+  NEXUS_REGISTRY: "nexuss.mahbod.com:8082"
+
+  GITLAB_API_URL: "http://gitlab.mahbod.com:8080/api/v4"
+
+  PROJECT_ID: "mahbod1%2Fmicroservices-demo"
+
   IMAGE_NAMESPACE: "online-boutique"
 
-  # All package repositories are internal.
-  GOPROXY: "http://nexuss.mahbod.com:8081/repository/go-group"
-  NUGET_SOURCE: "http://nexuss.mahbod.com:8081/repository/nuget-group/index.json"
-
-  # Internal Nexus / GitLab are not sent through the proxy.
-  NO_PROXY: "localhost,127.0.0.1,.mahbod.com"
 
 # ============================================================
-# BUILD
+# Service Matrix
+# ============================================================
+
+.service_matrix: &service_matrix
+  parallel:
+    matrix:
+      - SERVICE_NAME: "adservice"
+        BUILD_CONTEXT: "src/adservice"
+        CHANGES_PATH: "src/adservice"
+
+      - SERVICE_NAME: "cartservice"
+        BUILD_CONTEXT: "src/cartservice/src"
+        CHANGES_PATH: "src/cartservice"
+
+      - SERVICE_NAME: "checkoutservice"
+        BUILD_CONTEXT: "src/checkoutservice"
+        CHANGES_PATH: "src/checkoutservice"
+
+      - SERVICE_NAME: "currencyservice"
+        BUILD_CONTEXT: "src/currencyservice"
+        CHANGES_PATH: "src/currencyservice"
+
+      - SERVICE_NAME: "emailservice"
+        BUILD_CONTEXT: "src/emailservice"
+        CHANGES_PATH: "src/emailservice"
+
+      - SERVICE_NAME: "frontend"
+        BUILD_CONTEXT: "src/frontend"
+        CHANGES_PATH: "src/frontend"
+
+      - SERVICE_NAME: "loadgenerator"
+        BUILD_CONTEXT: "src/loadgenerator"
+        CHANGES_PATH: "src/loadgenerator"
+
+      - SERVICE_NAME: "paymentservice"
+        BUILD_CONTEXT: "src/paymentservice"
+        CHANGES_PATH: "src/paymentservice"
+
+      - SERVICE_NAME: "productcatalogservice"
+        BUILD_CONTEXT: "src/productcatalogservice"
+        CHANGES_PATH: "src/productcatalogservice"
+
+      - SERVICE_NAME: "recommendationservice"
+        BUILD_CONTEXT: "src/recommendationservice"
+        CHANGES_PATH: "src/recommendationservice"
+
+      - SERVICE_NAME: "shippingservice"
+        BUILD_CONTEXT: "src/shippingservice"
+        CHANGES_PATH: "src/shippingservice"
+
+      - SERVICE_NAME: "shoppingassistantservice"
+        BUILD_CONTEXT: "src/shoppingassistantservice"
+        CHANGES_PATH: "src/shoppingassistantservice"
+
+
+# ============================================================
+# Build
 # ============================================================
 
 build-services:
@@ -24,67 +81,44 @@ build-services:
 
   image: "nexuss.mahbod.com:8082/base/docker:27-cli"
 
-  parallel:
-    matrix:
-      - SERVICE_NAME: "adservice"
-        BUILD_CONTEXT: "src/adservice"
-
-      - SERVICE_NAME: "cartservice"
-        BUILD_CONTEXT: "src/cartservice/src"
-
-      - SERVICE_NAME: "checkoutservice"
-        BUILD_CONTEXT: "src/checkoutservice"
-
-      - SERVICE_NAME: "currencyservice"
-        BUILD_CONTEXT: "src/currencyservice"
-
-      - SERVICE_NAME: "emailservice"
-        BUILD_CONTEXT: "src/emailservice"
-
-      - SERVICE_NAME: "frontend"
-        BUILD_CONTEXT: "src/frontend"
-
-      - SERVICE_NAME: "loadgenerator"
-        BUILD_CONTEXT: "src/loadgenerator"
-
-      - SERVICE_NAME: "paymentservice"
-        BUILD_CONTEXT: "src/paymentservice"
-
-      - SERVICE_NAME: "productcatalogservice"
-        BUILD_CONTEXT: "src/productcatalogservice"
-
-      - SERVICE_NAME: "recommendationservice"
-        BUILD_CONTEXT: "src/recommendationservice"
-
-      - SERVICE_NAME: "shippingservice"
-        BUILD_CONTEXT: "src/shippingservice"
-
-      - SERVICE_NAME: "shoppingassistantservice"
-        BUILD_CONTEXT: "src/shoppingassistantservice"
+  <<: *service_matrix
 
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      changes:
-        - "src/$SERVICE_NAME/**/*"
+    - changes:
+        - "$CHANGES_PATH/**/*"
+    - when: never
 
   script:
+    - |
+      set -e
+
+      echo "=========================================="
+      echo "Building service: ${SERVICE_NAME}"
+      echo "Build context:     ${BUILD_CONTEXT}"
+      echo "Commit SHA:        ${CI_COMMIT_SHA}"
+      echo "=========================================="
+
     - docker version
 
-    - echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" --username "$NEXUS_USERNAME" --password-stdin
+    - |
+      echo "${NEXUS_PASSWORD}" | docker login \
+        "${NEXUS_REGISTRY}" \
+        --username "${NEXUS_USERNAME}" \
+        --password-stdin
 
-    - >
-      docker build
-      --add-host=nexuss.mahbod.com:192.168.168.144
-      --build-arg HTTP_PROXY="$HTTP_PROXY"
-      --build-arg HTTPS_PROXY="$HTTPS_PROXY"
-      --build-arg NO_PROXY="$NO_PROXY"
-      --build-arg GOPROXY="$GOPROXY"
-      -t "$IMAGE_REGISTRY/$IMAGE_NAMESPACE/$SERVICE_NAME:$CI_COMMIT_SHA"
-      "$BUILD_CONTEXT"
+    - |
+      docker build \
+        --add-host=nexuss.mahbod.com:192.168.168.144 \
+        --build-arg HTTP_PROXY="${HTTP_PROXY}" \
+        --build-arg HTTPS_PROXY="${HTTPS_PROXY}" \
+        --build-arg NO_PROXY="${NO_PROXY}" \
+        --build-arg GOPROXY="${GOPROXY}" \
+        -t "${NEXUS_REGISTRY}/${IMAGE_NAMESPACE}/${SERVICE_NAME}:${CI_COMMIT_SHA}" \
+        "${BUILD_CONTEXT}"
 
 
 # ============================================================
-# PUSH
+# Push
 # ============================================================
 
 push-services:
@@ -92,48 +126,7 @@ push-services:
 
   image: "nexuss.mahbod.com:8082/base/docker:27-cli"
 
-  parallel:
-    matrix:
-      - SERVICE_NAME: "adservice"
-        BUILD_CONTEXT: "src/adservice"
-
-      - SERVICE_NAME: "cartservice"
-        BUILD_CONTEXT: "src/cartservice/src"
-
-      - SERVICE_NAME: "checkoutservice"
-        BUILD_CONTEXT: "src/checkoutservice"
-
-      - SERVICE_NAME: "currencyservice"
-        BUILD_CONTEXT: "src/currencyservice"
-
-      - SERVICE_NAME: "emailservice"
-        BUILD_CONTEXT: "src/emailservice"
-
-      - SERVICE_NAME: "frontend"
-        BUILD_CONTEXT: "src/frontend"
-
-      - SERVICE_NAME: "loadgenerator"
-        BUILD_CONTEXT: "src/loadgenerator"
-
-      - SERVICE_NAME: "paymentservice"
-        BUILD_CONTEXT: "src/paymentservice"
-
-      - SERVICE_NAME: "productcatalogservice"
-        BUILD_CONTEXT: "src/productcatalogservice"
-
-      - SERVICE_NAME: "recommendationservice"
-        BUILD_CONTEXT: "src/recommendationservice"
-
-      - SERVICE_NAME: "shippingservice"
-        BUILD_CONTEXT: "src/shippingservice"
-
-      - SERVICE_NAME: "shoppingassistantservice"
-        BUILD_CONTEXT: "src/shoppingassistantservice"
-
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      changes:
-        - "src/$SERVICE_NAME/**/*"
+  <<: *service_matrix
 
   needs:
     - job: build-services
@@ -141,15 +134,35 @@ push-services:
         matrix:
           - SERVICE_NAME: ['$[[ matrix.SERVICE_NAME ]]']
             BUILD_CONTEXT: ['$[[ matrix.BUILD_CONTEXT ]]']
+            CHANGES_PATH: ['$[[ matrix.CHANGES_PATH ]]']
+
+  rules:
+    - changes:
+        - "$CHANGES_PATH/**/*"
+    - when: never
 
   script:
-    - echo "$NEXUS_PASSWORD" | docker login "$NEXUS_REGISTRY" --username "$NEXUS_USERNAME" --password-stdin
+    - |
+      set -e
 
-    - docker push "$IMAGE_REGISTRY/$IMAGE_NAMESPACE/$SERVICE_NAME:$CI_COMMIT_SHA"
+      echo "=========================================="
+      echo "Pushing service: ${SERVICE_NAME}"
+      echo "Image tag:       ${CI_COMMIT_SHA}"
+      echo "=========================================="
+
+    - |
+      echo "${NEXUS_PASSWORD}" | docker login \
+        "${NEXUS_REGISTRY}" \
+        --username "${NEXUS_USERNAME}" \
+        --password-stdin
+
+    - |
+      docker push \
+        "${NEXUS_REGISTRY}/${IMAGE_NAMESPACE}/${SERVICE_NAME}:${CI_COMMIT_SHA}"
 
 
 # ============================================================
-# UPDATE MANIFESTS
+# Update Kubernetes Manifests
 # ============================================================
 
 update-manifests:
@@ -158,145 +171,130 @@ update-manifests:
   image: "nexuss.mahbod.com:8082/base/alpine-curl-jq:3.20.3"
 
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "push"'
-      changes:
-        - "src/adservice/**/*"
-        - "src/cartservice/**/*"
-        - "src/checkoutservice/**/*"
-        - "src/currencyservice/**/*"
-        - "src/emailservice/**/*"
-        - "src/frontend/**/*"
-        - "src/loadgenerator/**/*"
-        - "src/paymentservice/**/*"
-        - "src/productcatalogservice/**/*"
-        - "src/recommendationservice/**/*"
-        - "src/shippingservice/**/*"
-        - "src/shoppingassistantservice/**/*"
+    - changes:
+        - "src/**/*"
+    - when: never
 
   script:
+    - |
+      set -e
 
-    # ----------------------------------------------------------
-    # GitLab API
-    # ----------------------------------------------------------
+      echo "=========================================="
+      echo "Detecting changed services"
+      echo "Commit: ${CI_COMMIT_SHA}"
+      echo "=========================================="
+
+    # --------------------------------------------------------
+    # Get changed files from current commit
+    # --------------------------------------------------------
 
     - |
-      export GITLAB_API="http://gitlab.mahbod.com:8080/api/v4"
-      export PROJECT_ID="mahbod1%2Fmicroservices-demo"
-
-    # ----------------------------------------------------------
-    # Find files changed by this commit
-    # ----------------------------------------------------------
-
-    - |
-      curl --fail --silent --show-error \
+      curl --fail \
+        --silent \
+        --show-error \
         --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-        "${GITLAB_API}/projects/${PROJECT_ID}/repository/commits/${CI_COMMIT_SHA}/diff" \
-        -o commit-diff.json
+        "${GITLAB_API_URL}/projects/${PROJECT_ID}/repository/commits/${CI_COMMIT_SHA}/diff" \
+        -o diff.json
 
-    # ----------------------------------------------------------
-    # Determine changed services
-    # ----------------------------------------------------------
+    # --------------------------------------------------------
+    # Detect changed services
+    # --------------------------------------------------------
 
     - |
-      SERVICES=""
+      jq -r '
+        .[] |
+        (.new_path // .old_path) |
+        select(startswith("src/")) |
+        split("/")[1]
+      ' diff.json |
+      sort -u |
+      grep -E '^(adservice|cartservice|checkoutservice|currencyservice|emailservice|frontend|loadgenerator|paymentservice|productcatalogservice|recommendationservice|shippingservice|shoppingassistantservice)$' \
+      > changed-services.txt || true
 
-      for service in \
-        adservice \
-        cartservice \
-        checkoutservice \
-        currencyservice \
-        emailservice \
-        frontend \
-        loadgenerator \
-        paymentservice \
-        productcatalogservice \
-        recommendationservice \
-        shippingservice \
-        shoppingassistantservice
-      do
-
-        if jq -e --arg service "$service" '
-          any(
-            .[];
-            (.new_path | startswith("src/" + $service + "/"))
-            or
-            (.old_path | startswith("src/" + $service + "/"))
-          )
-        ' commit-diff.json > /dev/null
-        then
-          SERVICES="$SERVICES $service"
-        fi
-
-      done
-
+    - |
       echo "Changed services:"
-      echo "$SERVICES"
+      cat changed-services.txt || true
 
-    # ----------------------------------------------------------
-    # Prepare GitLab API actions
-    # ----------------------------------------------------------
+    - |
+      if [ ! -s changed-services.txt ]; then
+        echo "No service changes detected."
+        exit 0
+      fi
+
+    # --------------------------------------------------------
+    # Prepare action files
+    # --------------------------------------------------------
 
     - mkdir -p actions
 
     - |
-      for service in $SERVICES
+      while IFS= read -r service
       do
+        echo "Updating manifest for: ${service}"
 
         FILE_PATH="k8s/services/${service}/deployment.yaml"
 
-        ENCODED_FILE_PATH=$(printf '%s' "$FILE_PATH" | sed 's|/|%2F|g')
+        ENCODED_FILE_PATH=$(printf '%s' "${FILE_PATH}" | sed 's|/|%2F|g')
 
-        echo "Updating ${FILE_PATH}"
-
-        curl --fail --silent --show-error \
+        curl --fail \
+          --silent \
+          --show-error \
           --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
-          "${GITLAB_API}/projects/${PROJECT_ID}/repository/files/${ENCODED_FILE_PATH}?ref=main" \
+          "${GITLAB_API_URL}/projects/${PROJECT_ID}/repository/files/${ENCODED_FILE_PATH}?ref=${CI_COMMIT_SHA}" \
           -o response.json
 
-        jq -r '.content' response.json | base64 -d > deployment.yaml
+        jq -r '.content' response.json |
+          base64 -d > deployment.yaml
 
         sed -E -i \
-          "s|(image:[[:space:]]*${IMAGE_REGISTRY}/${IMAGE_NAMESPACE}/${service}:)[^[:space:]]+|\1${CI_COMMIT_SHA}|" \
+          "s|(image:[[:space:]]*${NEXUS_REGISTRY//./\\.}/${IMAGE_NAMESPACE}/${service}:)[^[:space:]]+|\\1${CI_COMMIT_SHA}|" \
           deployment.yaml
 
         CONTENT=$(cat deployment.yaml)
 
         jq -n \
-          --arg file_path "$FILE_PATH" \
-          --arg content "$CONTENT" \
+          --arg file_path "${FILE_PATH}" \
+          --arg content "${CONTENT}" \
           '{
             action: "update",
             file_path: $file_path,
             content: $content
           }' > "actions/${service}.json"
 
-      done
+      done < changed-services.txt
 
-    # ----------------------------------------------------------
-    # Create one GitLab commit
-    # ----------------------------------------------------------
+    # --------------------------------------------------------
+    # Create one GitLab commit containing all manifest changes
+    # --------------------------------------------------------
 
     - |
       ACTIONS=$(jq -s '.' actions/*.json)
 
       jq -n \
         --arg branch "main" \
-        --arg commit_message "ci: update service images to ${CI_COMMIT_SHA} [skip ci]" \
-        --argjson actions "$ACTIONS" \
+        --arg commit_message "ci: update changed service images to ${CI_COMMIT_SHA} [skip ci]" \
+        --argjson actions "${ACTIONS}" \
         '{
           branch: $branch,
           commit_message: $commit_message,
           actions: $actions
         }' > commit.json
 
-    # ----------------------------------------------------------
-    # Push manifest update through GitLab API
-    # ----------------------------------------------------------
+    # --------------------------------------------------------
+    # Commit manifests to GitLab
+    # --------------------------------------------------------
 
     - |
-      curl --fail --silent --show-error \
+      curl --fail \
+        --silent \
+        --show-error \
         --request POST \
         --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
         --header "Content-Type: application/json" \
         --data-binary @commit.json \
-        "${GITLAB_API}/projects/${PROJECT_ID}/repository/commits"
+        "${GITLAB_API_URL}/projects/${PROJECT_ID}/repository/commits"
+
+    - |
+      echo "=========================================="
+      echo "Manifest update completed successfully."
+      echo "=========================================="
