@@ -2,13 +2,11 @@ FROM nexuss.mahbod.com:8082/base/python:3.12.8-alpine AS base
 
 FROM base AS builder
 
-RUN apk update \
-    && apk add --no-cache wget g++ \
-    && rm -rf /var/cache/apk/*
+RUN apk add --no-cache wget g++
 
 COPY requirements.txt .
 
-RUN pip install -r requirements.txt
+RUN pip install "setuptools<81" -r requirements.txt
 
 FROM base
 
