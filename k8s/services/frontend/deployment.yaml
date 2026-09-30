@@ -47,3 +47,6 @@ spec:
 
             - name: SHIPPING_SERVICE_ADDR
               value: "shippingservice:50051"
+
+            - name: SHOPPING_ASSISTANT_SERVICE_ADDR
+              value: "shoppingassistantservice:8080"
