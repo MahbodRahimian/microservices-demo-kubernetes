@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: recommendationservice
-          image: nexuss.mahbod.com:8082/online-boutique/recommendationservice:f5e11ccde74bf373bdbc8d3d1feee599c668b51a
+          image: nexuss.mahbod.com:8082/online-boutique/recommendationservice:b853c6546c0fecec375d656e00dddd45bdd7bc54
 
           ports:
             - name: grpc

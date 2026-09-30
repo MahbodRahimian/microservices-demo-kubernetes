@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: shoppingassistantservice
-          image: nexuss.mahbod.com:8082/online-boutique/shoppingassistantservice:0dff294e8d9f0cf3076d11c73e563363cab9e837
+          image: nexuss.mahbod.com:8082/online-boutique/shoppingassistantservice:b853c6546c0fecec375d656e00dddd45bdd7bc54
           ports:
             - containerPort: 8080
           env:

@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: emailservice
-          image: nexuss.mahbod.com:8082/online-boutique/emailservice:04dd665aee518320bc2d0326a7462016a84d2e8b
+          image: nexuss.mahbod.com:8082/online-boutique/emailservice:b853c6546c0fecec375d656e00dddd45bdd7bc54
 
           ports:
             - name: grpc
