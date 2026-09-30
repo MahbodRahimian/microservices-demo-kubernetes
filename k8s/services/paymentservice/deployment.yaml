@@ -25,3 +25,6 @@ spec:
           ports:
             - name: grpc
               containerPort: 50051
+          env:
+            - name: PORT
+              value: "50051"
