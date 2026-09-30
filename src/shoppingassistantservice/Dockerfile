@@ -1,4 +1,4 @@
-FROM nexuss.mahbod.com:8082/online-boutique/shoppingassistant-deps:1.0
+FROM nexuss.mahbod.com:8082/online-boutique/shoppingassistant-deps:2.0
 
 ENV PYTHONUNBUFFERED=1
 
