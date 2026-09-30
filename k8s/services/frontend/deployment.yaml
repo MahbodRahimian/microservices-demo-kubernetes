@@ -44,3 +44,6 @@ spec:
 
             - name: AD_SERVICE_ADDR
               value: "adservice:9555"
+
+            - name: SHIPPING_SERVICE_ADDR
+              value: "shippingservice:50051"
