@@ -1,20 +1,9 @@
-FROM nexuss.mahbod.com:8082/base/python:3.12.8-alpine AS base
-
-FROM base AS builder
-
-RUN apk add --no-cache wget g++
-
-COPY requirements.txt .
-
-RUN pip install "setuptools<81" -r requirements.txt
-
-FROM base
+FROM nexuss.mahbod.com:8082/online-boutique/recommendationservice-deps:1.0
 
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /recommendationservice
 
-COPY --from=builder /usr/local/lib/python3.12/ /usr/local/lib/python3.12/
 COPY . .
 
 ENV PORT=8080
