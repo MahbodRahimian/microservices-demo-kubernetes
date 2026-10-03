@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: loadgenerator
-          image: nexuss.mahbod.com:8082/online-boutique/loadgenerator:b853c6546c0fecec375d656e00dddd45bdd7bc54
+          image: nexuss.mahbod.com:8082/online-boutique/loadgenerator:caa8cc439f895ed88a3b30bf7ed899516e0ae3db
 
           env:
             - name: FRONTEND_ADDR
