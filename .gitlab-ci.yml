@@ -45,9 +45,6 @@ variables:
       - SERVICE_NAME: "shippingservice"
         BUILD_CONTEXT: "src/shippingservice"
         CHANGES_PATH: "src/shippingservice"
-      - SERVICE_NAME: "shoppingassistantservice"
-        BUILD_CONTEXT: "src/shoppingassistantservice"
-        CHANGES_PATH: "src/shoppingassistantservice"
 
 build-services:
   stage: build
@@ -161,7 +158,6 @@ update-manifests:
       productcatalogservice
       recommendationservice
       shippingservice
-      shoppingassistantservice
       EOF
 
       else
@@ -196,7 +192,7 @@ update-manifests:
           split("/")[1]
         ' compare.json |
         sort -u |
-        grep -E '^(adservice|cartservice|checkoutservice|currencyservice|emailservice|frontend|loadgenerator|paymentservice|productcatalogservice|recommendationservice|shippingservice|shoppingassistantservice)$' \
+        grep -E '^(adservice|cartservice|checkoutservice|currencyservice|emailservice|frontend|loadgenerator|paymentservice|productcatalogservice|recommendationservice|shippingservice)$' \
         > changed-services.txt || true
       fi
 
