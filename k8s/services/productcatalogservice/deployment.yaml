@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: productcatalogservice
-          image: nexuss.mahbod.com:8082/online-boutique/productcatalogservice:caa8cc439f895ed88a3b30bf7ed899516e0ae3db
+          image: nexuss.mahbod.com:8082/online-boutique/productcatalogservice:b732e712482ba5a11a2b14e6e4570c8f95798c68
 
           ports:
             - name: grpc
