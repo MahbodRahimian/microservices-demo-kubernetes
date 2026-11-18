@@ -1,115 +1,171 @@
-# Microservices Demo – Kubernetes & GitOps
+# Microservices Demo on Kubernetes
 
-A cloud-native microservices application demonstrating container orchestration, automated CI/CD workflows, private container registry integration, and GitOps-based Kubernetes deployments.
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestration-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![GitLab CI/CD](https://img.shields.io/badge/GitLab-CI%2FCD-FC6D26?logo=gitlab&logoColor=white)](https://docs.gitlab.com/ee/ci/)
+[![Argo CD](https://img.shields.io/badge/Argo_CD-GitOps-EF7B4D?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
+[![gRPC](https://img.shields.io/badge/gRPC-Communication-244c5a?logo=grpc&logoColor=white)](https://grpc.io/)
 
-![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestration-326CE5?logo=kubernetes&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED?logo=docker&logoColor=white)
-![GitLab CI](https://img.shields.io/badge/GitLab-CI%2FCD-FC6D26?logo=gitlab&logoColor=white)
-![Argo CD](https://img.shields.io/badge/Argo%20CD-GitOps-EF7B4D?logo=argo&logoColor=white)
-![Nexus](https://img.shields.io/badge/Nexus-Container%20Registry-143055?logo=sonatype&logoColor=white)
+A cloud-native microservices application deployed on Kubernetes, with an automated CI/CD workflow using GitLab CI, Nexus Container Registry, and Argo CD GitOps.
+
+This repository demonstrates containerization, Kubernetes deployment, automated image delivery, and GitOps-based application lifecycle management.
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Microservices](#microservices)
+- [Technology Stack](#technology-stack)
+- [Repository Structure](#repository-structure)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Deployment Lifecycle](#deployment-lifecycle)
+- [GitOps with Argo CD](#gitops-with-argo-cd)
+- [Kubernetes Deployment](#kubernetes-deployment)
+- [Documentation](#documentation)
+- [Upstream Project and Customizations](#upstream-project-and-customizations)
+- [Security Considerations](#security-considerations)
+- [Future Improvements](#future-improvements)
+- [Author](#author)
 
 ---
 
 ## Overview
 
-This project demonstrates how a multi-service application can be containerized, deployed, and managed using Kubernetes and modern DevOps practices.
+This project demonstrates how a distributed microservices application can be containerized and deployed on Kubernetes using modern DevOps practices.
 
-The application consists of independently deployable microservices that communicate to provide an integrated application experience.
+The application consists of multiple independent services that communicate through service-to-service APIs, including gRPC-based communication.
 
-The infrastructure and deployment workflow focuses on:
+The deployment workflow is designed around three main components:
 
-- Microservices architecture.
-- Docker-based application packaging.
-- Kubernetes workload orchestration.
-- GitLab CI/CD automation.
-- Container image management through Nexus Registry.
-- GitOps-based deployment management using Argo CD.
-- Declarative Kubernetes configuration.
+1. **GitLab CI/CD** – Automates application build and image delivery.
+2. **Nexus Repository** – Stores and manages container images.
+3. **Argo CD** – Synchronizes Kubernetes manifests from Git and applies the desired state to the cluster.
+
+The main objective is to demonstrate an automated and maintainable deployment workflow based on CI/CD and GitOps principles.
 
 ## Architecture
 
-The project separates application services, infrastructure components, and deployment automation.
+The application follows a microservices architecture in which each service is deployed independently as a Kubernetes workload.
 
-### High-Level Architecture
+### Logical Architecture
 
 ```mermaid
 flowchart TB
-    User[End User]
-    Ingress[Ingress]
-    Frontend[Frontend Service]
+    User[User / Browser]
 
-    subgraph Application["Microservices Application"]
-        Ad[Ad Service]
-        Cart[Cart Service]
-        Checkout[Checkout Service]
-        Currency[Currency Service]
-        Email[Email Service]
-        Payment[Payment Service]
-        Catalog[Product Catalog Service]
-        Recommendation[Recommendation Service]
-        Shipping[Shipping Service]
+    subgraph Kubernetes["Kubernetes Cluster"]
+        Frontend[Frontend]
+
+        subgraph Services["Application Services"]
+            Ad[Ad Service]
+            Cart[Cart Service]
+            Checkout[Checkout Service]
+            Currency[Currency Service]
+            Email[Email Service]
+            Payment[Payment Service]
+            Product[Product Catalog Service]
+            Recommendation[Recommendation Service]
+            Shipping[Shipping Service]
+        end
+
+        Redis[(Redis)]
+        LoadGen[Load Generator]
     end
 
-    Redis[(Redis)]
-
-    User --> Ingress
-    Ingress --> Frontend
-    Frontend --> Application
-    Cart --> Redis
+    User --> Frontend
+    Frontend --> Services
+    Services --> Redis
+    LoadGen --> Frontend
 ```
 
-The diagram represents the logical application architecture. Individual service communication paths should be understood alongside the application source and service definitions.
+*Note: This diagram provides a logical overview of the application components and is not intended to represent every internal service-to-service communication path.*
+
+### DevOps Architecture
+
+```mermaid
+flowchart LR
+    Developer[Developer]
+    Git[Git Repository]
+    GitLab[GitLab CI/CD]
+    Docker[Docker Build]
+    Nexus[Nexus Registry]
+    Manifests[Kubernetes Manifests]
+    Argo[Argo CD]
+    K8s[Kubernetes Cluster]
+
+    Developer --> Git
+    Git --> GitLab
+    GitLab --> Docker
+    Docker --> Nexus
+    GitLab --> Manifests
+    Manifests --> Argo
+    Argo --> K8s
+```
 
 ## Microservices
 
-The application contains the following services:
+The application contains multiple services, each responsible for a specific business capability.
 
 | Service | Responsibility |
 |---|---|
-| Frontend | Provides the user-facing application |
-| Ad Service | Handles advertisement-related functionality |
-| Cart Service | Manages shopping cart operations |
-| Checkout Service | Coordinates the checkout process |
-| Currency Service | Provides currency conversion |
-| Email Service | Handles email-related operations |
-| Payment Service | Processes payment-related operations |
-| Product Catalog Service | Manages product catalog information |
-| Recommendation Service | Provides product recommendations |
-| Shipping Service | Handles shipping-related functionality |
+| Frontend | User-facing web application |
+| Ad Service | Advertisement recommendations |
+| Cart Service | Shopping cart management |
+| Checkout Service | Checkout workflow |
+| Currency Service | Currency conversion |
+| Email Service | Email notifications |
+| Payment Service | Payment processing |
+| Product Catalog Service | Product information |
+| Recommendation Service | Product recommendations |
+| Shipping Service | Shipping cost and delivery operations |
 | Load Generator | Generates application traffic for testing |
 
-Each service is maintained as an independent application component and can be packaged and deployed separately.
+The services are deployed independently using Kubernetes manifests.
 
 ## Technology Stack
 
-| Technology | Purpose |
+| Category | Technology |
 |---|---|
-| Docker | Container image creation |
-| Kubernetes | Container orchestration |
-| GitLab CI/CD | Build and deployment automation |
-| Nexus Repository | Container image storage |
-| Argo CD | GitOps-based deployment synchronization |
-| Redis | Application caching and cart-related data |
-| gRPC | Inter-service communication |
-| YAML | Declarative infrastructure configuration |
+| Application Architecture | Microservices |
+| Programming Languages | Go, Java, C#, Python, Node.js |
+| Containerization | Docker |
+| Container Orchestration | Kubernetes |
+| CI/CD | GitLab CI/CD |
+| Container Registry | Nexus Repository |
+| GitOps | Argo CD |
+| Service Communication | gRPC |
+| Application Data Store | Redis |
+| Configuration | YAML |
+| Version Control | Git |
 
 ## Repository Structure
 
-The repository is organized into application source code, Kubernetes resources, CI/CD configuration, and GitOps deployment definitions.
-
 ```text
-.
+microservices-demo-kubernetes/
+│
 ├── argocd/
 │   ├── applications/
+│   │   └── online-boutique.yaml
 │   └── project.yaml
 │
 ├── k8s/
 │   ├── namespace/
 │   ├── redis/
-│   └── <microservice-manifests>/
+│   ├── adservice/
+│   ├── cartservice/
+│   ├── checkoutservice/
+│   ├── currencyservice/
+│   ├── emailservice/
+│   ├── frontend/
+│   ├── loadgenerator/
+│   ├── paymentservice/
+│   ├── productcatalogservice/
+│   ├── recommendationservice/
+│   └── shippingservice/
 │
 ├── protos/
-│   └── demo.proto
 │
 ├── src/
 │   ├── adservice/
@@ -124,102 +180,106 @@ The repository is organized into application source code, Kubernetes resources, 
 │   ├── recommendationservice/
 │   └── shippingservice/
 │
+├── docs/
+│   ├── architecture.md
+│   ├── ci-cd.md
+│   └── gitops-deployment.md
+│
 ├── .gitlab-ci.yml
 └── README.md
 ```
 
-*Note: This is a logical overview of the repository structure. Refer to the actual directories and configuration files for the complete implementation.*
+*The structure above is a high-level representation. Actual filenames and directories should match the current repository contents.*
 
 ## CI/CD Pipeline
 
-GitLab CI/CD automates the build and image publishing workflow.
+GitLab CI/CD is used to automate the application delivery process.
 
-The pipeline is organized around three main stages:
+The pipeline is organized into three main stages:
 
-1. Build
-2. Push
-3. Update Manifests
+### 1. Build
 
-### Pipeline Architecture
+- Detects the services that need to be built.
+- Builds Docker images for the relevant services.
+- Uses commit-based image tags to identify each build.
+
+### 2. Push
+
+- Authenticates with the Nexus Container Registry.
+- Pushes the generated Docker images to the private registry.
+- Makes the images available for Kubernetes deployments.
+
+### 3. Update Manifests
+
+- Updates the image references in Kubernetes Deployment manifests.
+- Uses the corresponding image tag generated by the pipeline.
+- Commits the manifest changes to the Git repository.
+
+### Pipeline Overview
 
 ```mermaid
 flowchart TD
-    Developer[Developer]
-    GitLab[GitLab Repository]
-    Pipeline[GitLab CI/CD Pipeline]
-
-    Build[Build Changed Services]
-    Push[Push Images to Nexus]
-    Update[Update Kubernetes Manifests]
-    Commit[Commit Updated Manifests]
-
-    Argo[Argo CD]
-    Cluster[Kubernetes Cluster]
-
-    Developer --> GitLab
-    GitLab --> Pipeline
-    Pipeline --> Build
-    Build --> Push
-    Push --> Update
-    Update --> Commit
-    Commit --> Argo
-    Argo --> Cluster
+    A[Code Change] --> B[GitLab Pipeline]
+    B --> C[Build Docker Images]
+    C --> D[Push Images to Nexus]
+    D --> E[Update Kubernetes Manifests]
+    E --> F[Commit Manifest Changes]
+    F --> G[Argo CD Synchronization]
+    G --> H[Kubernetes Deployment]
 ```
 
-### Pipeline Stages
+## Deployment Lifecycle
 
-| Stage | Responsibility |
-|---|---|
-| Build | Builds Docker images for changed microservices |
-| Push | Publishes built images to Nexus Container Registry |
-| Update Manifests | Updates Kubernetes image references using the corresponding commit-based image tag |
+The deployment lifecycle follows a GitOps-oriented workflow.
 
-### Image Versioning
+1. A developer pushes application changes to the Git repository.
+2. GitLab CI/CD executes the pipeline.
+3. Docker images are built for the relevant services.
+4. Images are pushed to the Nexus Container Registry.
+5. Kubernetes manifests are updated with the new image tags.
+6. The updated manifests are committed to Git.
+7. Argo CD detects the repository changes.
+8. Argo CD synchronizes the desired state with the Kubernetes cluster.
 
-Container images are tagged using commit-related identifiers to improve traceability between application source changes and deployed versions.
+This workflow separates application image delivery from Kubernetes deployment synchronization.
 
-This approach helps identify which source revision is associated with a deployed container image.
+## GitOps with Argo CD
 
-## GitOps Deployment with Argo CD
+Argo CD is responsible for continuously monitoring the configured Git repository and synchronizing Kubernetes resources.
 
-Argo CD manages the deployment synchronization between the Git repository and the Kubernetes cluster.
+The desired application state is maintained in Git, allowing deployment changes to be tracked and reviewed through version control.
 
-The deployment workflow follows a declarative GitOps model:
+### Main Benefits
 
-- Kubernetes deployment configuration is maintained in Git.
-- CI/CD updates the image references in the manifests.
-- Argo CD detects repository changes.
-- Argo CD synchronizes the desired configuration with Kubernetes.
-- Kubernetes maintains the declared application state.
+- Declarative Kubernetes configuration.
+- Git-based deployment history.
+- Automated synchronization.
+- Easier rollback through Git history.
+- Clear separation between CI and CD responsibilities.
+- Improved deployment consistency.
 
-### GitOps Workflow
+Argo CD application configuration is maintained under:
 
-```mermaid
-flowchart LR
-    Git[Git Repository]
-    Argo[Argo CD]
-    K8s[Kubernetes Cluster]
-
-    Git -->|Desired State| Argo
-    Argo -->|Synchronization| K8s
-    K8s -->|Application State| Argo
+```text
+argocd/
+├── applications/
+│   └── online-boutique.yaml
+└── project.yaml
 ```
 
 ## Kubernetes Deployment
 
-Kubernetes manifests are maintained under the `k8s/` directory.
+The application is deployed using Kubernetes manifests.
 
-The resources define application workloads, networking, and supporting components.
-
-Common Kubernetes resources used by this project include:
+The manifests define resources such as:
 
 - Namespace
-- Deployment
-- Service
+- Deployments
+- Services
 - Ingress
-- Redis Deployment and Service
+- Configurations and application resources
 
-### Useful Commands
+### Example Kubernetes Commands
 
 Check cluster nodes:
 
@@ -227,86 +287,89 @@ Check cluster nodes:
 kubectl get nodes
 ```
 
-List application namespaces:
+List application pods:
 
 ```bash
-kubectl get namespaces
+kubectl get pods -n <namespace>
 ```
 
-Inspect Pods:
+List services:
 
 ```bash
-kubectl get pods -A
+kubectl get services -n <namespace>
 ```
 
-Inspect Deployments:
+List deployments:
 
 ```bash
-kubectl get deployments -A
+kubectl get deployments -n <namespace>
 ```
 
-Inspect Services:
-
-```bash
-kubectl get services -A
-```
-
-Inspect application logs:
-
-```bash
-kubectl logs <pod-name> -n <namespace>
-```
-
-## Configuration Management
-
-Application and deployment configuration is maintained through repository configuration files and Kubernetes manifests.
-
-Sensitive values such as passwords, tokens, and registry credentials should be managed outside publicly accessible source files.
-
-Do not commit production credentials or private infrastructure secrets to this repository.
-
-## Monitoring and Troubleshooting
-
-Useful Kubernetes commands for troubleshooting:
-
-```bash
-kubectl get pods -A
-kubectl get events -A --sort-by=.metadata.creationTimestamp
-kubectl describe pod <pod-name> -n <namespace>
-kubectl logs <pod-name> -n <namespace>
-```
-
-For a specific Deployment:
+Inspect a deployment:
 
 ```bash
 kubectl describe deployment <deployment-name> -n <namespace>
 ```
 
-## DevOps Concepts Demonstrated
+View pod logs:
 
-This project demonstrates practical experience with:
+```bash
+kubectl logs <pod-name> -n <namespace>
+```
 
-- Microservices deployment.
-- Container image creation and versioning.
-- Kubernetes workload management.
-- Automated CI/CD pipelines.
-- Private container registry integration.
-- Declarative infrastructure management.
-- GitOps deployment workflows.
-- Application release traceability.
+*Replace `<namespace>`, `<deployment-name>`, and `<pod-name>` with the actual values used in your cluster.*
+
+## Documentation
+
+Additional technical documentation is available in the `docs/` directory.
+
+| Document | Description |
+|---|---|
+| [Architecture](docs/architecture.md) | Application architecture and main components |
+| [CI/CD Pipeline](docs/ci-cd.md) | Build, image publishing, and manifest update workflow |
+| [GitOps Deployment](docs/gitops-deployment.md) | Argo CD configuration and deployment synchronization |
+
+## Upstream Project and Customizations
+
+This project is based on the [Google Cloud Online Boutique microservices demo](https://github.com/GoogleCloudPlatform/microservices-demo).
+
+The upstream project provides the sample microservices application and its core application components.
+
+This repository focuses on DevOps and deployment-related implementation, including:
+
+- Kubernetes deployment manifests.
+- GitLab CI/CD workflow.
+- Docker image build and delivery process.
+- Nexus Container Registry integration.
+- Kubernetes manifest image updates.
+- Argo CD GitOps integration.
+
+The upstream project's original license and attribution requirements must be preserved.
+
+## Security Considerations
+
+Security is an important part of operating containerized applications.
+
+Recommended practices include:
+
+- Avoid committing passwords, tokens, and credentials to Git.
+- Use Kubernetes Secrets for sensitive configuration.
+- Use private container registries for internal images.
+- Apply least-privilege access to Kubernetes resources.
+- Restrict access to CI/CD variables and deployment credentials.
+- Regularly update container base images and application dependencies.
 
 ## Future Improvements
 
-Potential areas for further development:
+Potential areas for further development include:
 
-- Prometheus and Grafana monitoring.
-- Centralized logging.
-- Distributed tracing.
-- Automated container vulnerability scanning.
-- Kubernetes resource requests and limits.
-- Horizontal Pod Autoscaling.
-- Helm-based application packaging.
-- Automated deployment verification.
+- Implementing automated container image vulnerability scanning.
+- Adding Prometheus and Grafana monitoring.
+- Integrating centralized logging.
+- Adding resource requests and limits for all workloads.
+- Implementing Kubernetes NetworkPolicies.
+- Adding automated security and quality checks to CI/CD.
+- Improving deployment observability and rollback procedures.
 
 ## Author
 
@@ -314,13 +377,4 @@ Potential areas for further development:
 
 DevOps Engineer
 
-Areas of focus: Kubernetes, Docker, CI/CD, GitOps, Linux Infrastructure and Automation.
-
-
-## Documentation
-
-| Document | Description |
-|---|---|
-| [Architecture](docs/architecture.md) | Microservices and infrastructure architecture |
-| [CI/CD Pipeline](docs/ci-cd.md) | GitLab CI/CD workflow and container image delivery |
-| [GitOps Deployment](docs/gitops-deployment.md) | Argo CD and Kubernetes synchronization |
+GitHub: [MahbodRahimian](https://github.com/MahbodRahimian)
