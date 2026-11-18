@@ -1,93 +1,317 @@
-# microservices-demo
+# Microservices Demo – Kubernetes & GitOps
 
+A cloud-native microservices application demonstrating container orchestration, automated CI/CD workflows, private container registry integration, and GitOps-based Kubernetes deployments.
 
+![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestration-326CE5?logo=kubernetes&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Containerization-2496ED?logo=docker&logoColor=white)
+![GitLab CI](https://img.shields.io/badge/GitLab-CI%2FCD-FC6D26?logo=gitlab&logoColor=white)
+![Argo CD](https://img.shields.io/badge/Argo%20CD-GitOps-EF7B4D?logo=argo&logoColor=white)
+![Nexus](https://img.shields.io/badge/Nexus-Container%20Registry-143055?logo=sonatype&logoColor=white)
 
-## Getting started
+---
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Overview
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+This project demonstrates how a multi-service application can be containerized, deployed, and managed using Kubernetes and modern DevOps practices.
 
-## Add your files
+The application consists of independently deployable microservices that communicate to provide an integrated application experience.
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+The infrastructure and deployment workflow focuses on:
 
+- Microservices architecture.
+- Docker-based application packaging.
+- Kubernetes workload orchestration.
+- GitLab CI/CD automation.
+- Container image management through Nexus Registry.
+- GitOps-based deployment management using Argo CD.
+- Declarative Kubernetes configuration.
+
+## Architecture
+
+The project separates application services, infrastructure components, and deployment automation.
+
+### High-Level Architecture
+
+```mermaid
+flowchart TB
+    User[End User]
+    Ingress[Ingress]
+    Frontend[Frontend Service]
+
+    subgraph Application["Microservices Application"]
+        Ad[Ad Service]
+        Cart[Cart Service]
+        Checkout[Checkout Service]
+        Currency[Currency Service]
+        Email[Email Service]
+        Payment[Payment Service]
+        Catalog[Product Catalog Service]
+        Recommendation[Recommendation Service]
+        Shipping[Shipping Service]
+    end
+
+    Redis[(Redis)]
+
+    User --> Ingress
+    Ingress --> Frontend
+    Frontend --> Application
+    Cart --> Redis
 ```
-cd existing_repo
-git remote add origin http://gitlab.mahbod.com:8080/mahbod1/microservices-demo.git
-git branch -M main
-git push -uf origin main
+
+The diagram represents the logical application architecture. Individual service communication paths should be understood alongside the application source and service definitions.
+
+## Microservices
+
+The application contains the following services:
+
+| Service | Responsibility |
+|---|---|
+| Frontend | Provides the user-facing application |
+| Ad Service | Handles advertisement-related functionality |
+| Cart Service | Manages shopping cart operations |
+| Checkout Service | Coordinates the checkout process |
+| Currency Service | Provides currency conversion |
+| Email Service | Handles email-related operations |
+| Payment Service | Processes payment-related operations |
+| Product Catalog Service | Manages product catalog information |
+| Recommendation Service | Provides product recommendations |
+| Shipping Service | Handles shipping-related functionality |
+| Load Generator | Generates application traffic for testing |
+
+Each service is maintained as an independent application component and can be packaged and deployed separately.
+
+## Technology Stack
+
+| Technology | Purpose |
+|---|---|
+| Docker | Container image creation |
+| Kubernetes | Container orchestration |
+| GitLab CI/CD | Build and deployment automation |
+| Nexus Repository | Container image storage |
+| Argo CD | GitOps-based deployment synchronization |
+| Redis | Application caching and cart-related data |
+| gRPC | Inter-service communication |
+| YAML | Declarative infrastructure configuration |
+
+## Repository Structure
+
+The repository is organized into application source code, Kubernetes resources, CI/CD configuration, and GitOps deployment definitions.
+
+```text
+.
+├── argocd/
+│   ├── applications/
+│   └── project.yaml
+│
+├── k8s/
+│   ├── namespace/
+│   ├── redis/
+│   └── <microservice-manifests>/
+│
+├── protos/
+│   └── demo.proto
+│
+├── src/
+│   ├── adservice/
+│   ├── cartservice/
+│   ├── checkoutservice/
+│   ├── currencyservice/
+│   ├── emailservice/
+│   ├── frontend/
+│   ├── loadgenerator/
+│   ├── paymentservice/
+│   ├── productcatalogservice/
+│   ├── recommendationservice/
+│   └── shippingservice/
+│
+├── .gitlab-ci.yml
+└── README.md
 ```
 
-## Integrate with your tools
+*Note: This is a logical overview of the repository structure. Refer to the actual directories and configuration files for the complete implementation.*
 
-* [Set up project integrations](http://gitlab.mahbod.com:8080/mahbod1/microservices-demo/-/settings/integrations)
+## CI/CD Pipeline
 
-## Collaborate with your team
+GitLab CI/CD automates the build and image publishing workflow.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+The pipeline is organized around three main stages:
 
-## Test and Deploy
+1. Build
+2. Push
+3. Update Manifests
 
-Use the built-in continuous integration in GitLab.
+### Pipeline Architecture
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```mermaid
+flowchart TD
+    Developer[Developer]
+    GitLab[GitLab Repository]
+    Pipeline[GitLab CI/CD Pipeline]
 
-***
+    Build[Build Changed Services]
+    Push[Push Images to Nexus]
+    Update[Update Kubernetes Manifests]
+    Commit[Commit Updated Manifests]
 
-# Editing this README
+    Argo[Argo CD]
+    Cluster[Kubernetes Cluster]
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+    Developer --> GitLab
+    GitLab --> Pipeline
+    Pipeline --> Build
+    Build --> Push
+    Push --> Update
+    Update --> Commit
+    Commit --> Argo
+    Argo --> Cluster
+```
 
-## Suggestions for a good README
+### Pipeline Stages
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+| Stage | Responsibility |
+|---|---|
+| Build | Builds Docker images for changed microservices |
+| Push | Publishes built images to Nexus Container Registry |
+| Update Manifests | Updates Kubernetes image references using the corresponding commit-based image tag |
 
-## Name
-Choose a self-explaining name for your project.
+### Image Versioning
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Container images are tagged using commit-related identifiers to improve traceability between application source changes and deployed versions.
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+This approach helps identify which source revision is associated with a deployed container image.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## GitOps Deployment with Argo CD
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+Argo CD manages the deployment synchronization between the Git repository and the Kubernetes cluster.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+The deployment workflow follows a declarative GitOps model:
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+- Kubernetes deployment configuration is maintained in Git.
+- CI/CD updates the image references in the manifests.
+- Argo CD detects repository changes.
+- Argo CD synchronizes the desired configuration with Kubernetes.
+- Kubernetes maintains the declared application state.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### GitOps Workflow
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+```mermaid
+flowchart LR
+    Git[Git Repository]
+    Argo[Argo CD]
+    K8s[Kubernetes Cluster]
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+    Git -->|Desired State| Argo
+    Argo -->|Synchronization| K8s
+    K8s -->|Application State| Argo
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Kubernetes Deployment
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+Kubernetes manifests are maintained under the `k8s/` directory.
 
-## License
-For open source projects, say how it is licensed.
+The resources define application workloads, networking, and supporting components.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Common Kubernetes resources used by this project include:
+
+- Namespace
+- Deployment
+- Service
+- Ingress
+- Redis Deployment and Service
+
+### Useful Commands
+
+Check cluster nodes:
+
+```bash
+kubectl get nodes
+```
+
+List application namespaces:
+
+```bash
+kubectl get namespaces
+```
+
+Inspect Pods:
+
+```bash
+kubectl get pods -A
+```
+
+Inspect Deployments:
+
+```bash
+kubectl get deployments -A
+```
+
+Inspect Services:
+
+```bash
+kubectl get services -A
+```
+
+Inspect application logs:
+
+```bash
+kubectl logs <pod-name> -n <namespace>
+```
+
+## Configuration Management
+
+Application and deployment configuration is maintained through repository configuration files and Kubernetes manifests.
+
+Sensitive values such as passwords, tokens, and registry credentials should be managed outside publicly accessible source files.
+
+Do not commit production credentials or private infrastructure secrets to this repository.
+
+## Monitoring and Troubleshooting
+
+Useful Kubernetes commands for troubleshooting:
+
+```bash
+kubectl get pods -A
+kubectl get events -A --sort-by=.metadata.creationTimestamp
+kubectl describe pod <pod-name> -n <namespace>
+kubectl logs <pod-name> -n <namespace>
+```
+
+For a specific Deployment:
+
+```bash
+kubectl describe deployment <deployment-name> -n <namespace>
+```
+
+## DevOps Concepts Demonstrated
+
+This project demonstrates practical experience with:
+
+- Microservices deployment.
+- Container image creation and versioning.
+- Kubernetes workload management.
+- Automated CI/CD pipelines.
+- Private container registry integration.
+- Declarative infrastructure management.
+- GitOps deployment workflows.
+- Application release traceability.
+
+## Future Improvements
+
+Potential areas for further development:
+
+- Prometheus and Grafana monitoring.
+- Centralized logging.
+- Distributed tracing.
+- Automated container vulnerability scanning.
+- Kubernetes resource requests and limits.
+- Horizontal Pod Autoscaling.
+- Helm-based application packaging.
+- Automated deployment verification.
+
+## Author
+
+**Mahbod Rahimian**
+
+DevOps Engineer
+
+Areas of focus: Kubernetes, Docker, CI/CD, GitOps, Linux Infrastructure and Automation.
