@@ -315,3 +315,12 @@ Potential areas for further development:
 DevOps Engineer
 
 Areas of focus: Kubernetes, Docker, CI/CD, GitOps, Linux Infrastructure and Automation.
+
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Architecture](docs/architecture.md) | Microservices and infrastructure architecture |
+| [CI/CD Pipeline](docs/ci-cd.md) | GitLab CI/CD workflow and container image delivery |
+| [GitOps Deployment](docs/gitops-deployment.md) | Argo CD and Kubernetes synchronization |
